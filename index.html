@@ -122,13 +122,13 @@
 
             <div class="space-y-5 overflow-y-auto pr-1 flex-grow">
                 <div>
-                    <label id="label-custom" class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5">Custom Breakfast Name</label>
+                    <label id="label-custom" class="block text-sm font-bold uppercase tracking-wider text-slate-400 mb-1.5">Custom Breakfast Name</label>
                     <input type="text" id="breakfast-input" placeholder="e.g., Avocado Toast" 
                         class="w-full px-4 py-3.5 bg-slate-50 border-2 border-slate-200 rounded-xl focus:ring-4 focus:ring-amber-500/20 focus:border-amber-500 focus:bg-white outline-none transition duration-200 text-lg font-bold">
                 </div>
 
                 <div>
-                    <label id="label-presets" class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Quick Presets</label>
+                    <label id="label-presets" class="block text-sm font-bold uppercase tracking-wider text-slate-400 mb-2">Quick Presets</label>
                     <div class="grid grid-cols-2 gap-2" id="presets-container">
                         <!-- Filled dynamically -->
                     </div>
@@ -190,10 +190,13 @@
             breakfastRequest: { active: false, timestamp: 0 }
         };
         window.activeDay = null;
+        window.isDataLoaded = false; // Safety lock to prevent blank writes on loading
         let lastAlertTimestamp = 0;
 
         // Listen to Firestore changes in real-time
         onSnapshot(doc(db, "planners", "weekly-plan"), (docSnap) => {
+            window.isDataLoaded = true; // Unlock writes
+
             if (docSnap.exists()) {
                 window.plannerData = docSnap.data();
             } else {
@@ -205,11 +208,18 @@
 
             // Sync alert state globally
             const req = window.plannerData.breakfastRequest;
+            const mySentTimestamp = parseInt(localStorage.getItem('mySentTimestamp') || '0');
+
             if (req && req.active) {
-                showAlarmModal();
-                if (req.timestamp !== lastAlertTimestamp) {
-                    lastAlertTimestamp = req.timestamp;
-                    triggerLocalAppAlertEffects();
+                // If the alert was sent by THIS device, do not show the popup modal
+                if (req.timestamp === mySentTimestamp) {
+                    hideAlarmModal();
+                } else {
+                    showAlarmModal();
+                    if (req.timestamp !== lastAlertTimestamp) {
+                        lastAlertTimestamp = req.timestamp;
+                        triggerLocalAppAlertEffects();
+                    }
                 }
             } else {
                 hideAlarmModal();
@@ -219,16 +229,22 @@
         }, (err) => {
             console.error("Error reading from Firestore:", err);
             window.plannerData = JSON.parse(localStorage.getItem('breakfastPlannerData')) || window.plannerData;
+            window.isDataLoaded = true; // Unlock even if Firestore fails
             window.renderPlanner();
         });
 
         // Global save trigger
         window.saveDataToBackend = async function() {
+            if (!window.isDataLoaded) {
+                console.warn("Prevented save: Database is still loading.");
+                return;
+            }
             try {
                 if (!window.plannerData.breakfastRequest) {
                     window.plannerData.breakfastRequest = { active: false, timestamp: 0 };
                 }
-                await setDoc(doc(db, "planners", "weekly-plan"), window.plannerData);
+                // merge: true keeps files perfectly synchronized without complete overrides
+                await setDoc(doc(db, "planners", "weekly-plan"), window.plannerData, { merge: true });
             } catch (e) {
                 console.error("Firestore write failed:", e);
                 localStorage.setItem('breakfastPlannerData', JSON.stringify(window.plannerData));
@@ -450,44 +466,46 @@
 
         // Active Wake Up Dispatcher
         async function sendWakeUpAlert() {
-            // 1. Update active status inside the app's shared Firestore document
+            if (!window.isDataLoaded) return;
+
+            const now = Date.now();
+            
+            // Mark locally immediately as "sent" on this device
+            localStorage.setItem('mySentTimestamp', now.toString());
+
+            // Instantly update UI locally (Skip sequential DB delays for instant click visual)
             window.plannerData.breakfastRequest = {
                 active: true,
-                timestamp: Date.now()
+                timestamp: now
             };
-            if (typeof window.saveDataToBackend === 'function') {
-                await window.saveDataToBackend();
-            }
+            window.renderPlanner();
 
-            // 2. Dispatch a true external System Push Notification via ntfy.sh
-            try {
-                const isUrdu = currentLang === 'ur';
-                const title = isUrdu ? "ناشتہ تیار کریں!" : "Make Breakfast!";
-                const body = isUrdu ? "کوئی جاگ گیا ہے اور ناشتے کا انتظار کر رہا ہے۔" : "Someone is awake and waiting for breakfast.";
+            // Fire ntfy background push request concurrently (Doesn't block user action)
+            const isUrdu = currentLang === 'ur';
+            const title = isUrdu ? "ناشتہ تیار کریں!" : "Make Breakfast!";
+            const body = isUrdu ? "کوئی جاگ گیا ہے اور ناشتے کا انتظار کر رہا ہے۔" : "Someone is awake and waiting for breakfast.";
 
-                await fetch(`https://ntfy.sh/${ntfyTopic}`, {
-                    method: 'POST',
-                    body: body,
-                    headers: {
-                        'Title': title,
-                        'Priority': 'high', // Ensures it vibrates and rings loudly on her phone
-                        'Tags': 'coffee,bell'
-                    }
-                });
-                console.log("System Push Alert successfully sent via ntfy channel.");
-            } catch (e) {
-                console.error("Unable to reach external push service:", e);
-            }
+            fetch(`https://ntfy.sh/${ntfyTopic}`, {
+                method: 'POST',
+                body: body,
+                headers: {
+                    'Title': title,
+                    'Priority': 'high', // Force vibrate and ring screen popup
+                    'Tags': 'coffee,bell'
+                }
+            }).catch(e => console.error("Push dispatcher error:", e));
+
+            // Write state asynchronously to database
+            await window.saveDataToBackend();
         }
 
         async function dismissWakeUpAlert() {
+            if (!window.isDataLoaded) return;
             window.plannerData.breakfastRequest = {
                 active: false,
                 timestamp: Date.now()
             };
-            if (typeof window.saveDataToBackend === 'function') {
-                await window.saveDataToBackend();
-            }
+            await window.saveDataToBackend();
         }
 
         function showAlarmModal() {
@@ -640,6 +658,7 @@
         async function resetWeek() {
             const t = translations[currentLang];
             if (confirm(t.resetConfirm)) {
+                if (!window.isDataLoaded) return;
                 daysKeyList.forEach(day => window.plannerData[day] = '');
                 if (typeof window.saveDataToBackend === 'function') {
                     await window.saveDataToBackend();
