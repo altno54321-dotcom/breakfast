@@ -24,9 +24,17 @@
             font-family: 'Plus Jakarta Sans', sans-serif;
         }
         
-        /* Prevent elastic bounce scrolling on mobile iOS devices */
         html, body {
             overscroll-behavior-y: contain;
+        }
+
+        /* Continuous subtle pulse animation for the active alert overlay */
+        @keyframes custom-pulse {
+            0%, 100% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.05); opacity: 0.9; }
+        }
+        .animate-custom-pulse {
+            animation: custom-pulse 2s infinite ease-in-out;
         }
     </style>
 </head>
@@ -35,7 +43,6 @@
     <!-- Compact Mobile Header -->
     <header class="bg-white border-b border-slate-100 py-3.5 px-4 sticky top-0 z-30 shadow-sm backdrop-blur-md bg-white/95">
         <div class="max-w-md mx-auto flex justify-between items-center">
-            <!-- Brand Logo & Title -->
             <div class="flex items-center gap-2.5">
                 <div class="p-2 bg-amber-500 text-white rounded-xl shadow-md shadow-amber-500/10">
                     <i data-lucide="coffee" class="w-5.5 h-5.5"></i>
@@ -43,15 +50,12 @@
                 <h1 id="app-title" class="text-2xl font-extrabold text-slate-900 tracking-tight">Breakfast</h1>
             </div>
             
-            <!-- Quick Header Controls -->
             <div class="flex items-center gap-1.5">
-                <!-- Compact Language Selector -->
                 <select id="lang-selector" onchange="changeLanguage(this.value)" class="bg-slate-100 text-slate-800 font-bold text-sm px-3 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-amber-500">
                     <option value="en">EN</option>
                     <option value="ur">اردو</option>
                 </select>
 
-                <!-- Icon-only Reset to Save Mobile Space -->
                 <button onclick="resetWeek()" class="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition" id="btn-reset-container" title="Reset Week">
                     <i data-lucide="rotate-ccw" class="w-5.5 h-5.5"></i>
                 </button>
@@ -59,10 +63,10 @@
         </div>
     </header>
 
-    <!-- App Shell Frame (Constrained width so it looks like a clean phone app even on desktop) -->
+    <!-- App Shell Frame -->
     <main class="flex-grow max-w-md w-full mx-auto p-4 space-y-4">
         
-        <!-- Today's Breakfast Compact Card (Tapping it opens current day edit) -->
+        <!-- Today's Breakfast Compact Card -->
         <section id="todays-banner" onclick="openTodayModal()" class="bg-amber-500 text-white rounded-2xl p-4 shadow-lg shadow-amber-500/10 flex items-center justify-between gap-3 cursor-pointer hover:bg-amber-600 transition active:scale-[0.98]">
             <div class="flex items-center gap-3.5 min-w-0">
                 <div class="p-3 bg-white/20 rounded-xl text-2xl flex-shrink-0 leading-none">
@@ -78,6 +82,22 @@
             </div>
         </section>
 
+        <!-- Wake Up Notification Widget -->
+        <section class="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm flex items-center justify-between gap-3">
+            <div class="flex items-center gap-3.5 min-w-0">
+                <div class="p-3 bg-rose-50 text-rose-500 rounded-xl flex-shrink-0">
+                    <i data-lucide="bell" id="bell-icon" class="w-6 h-6"></i>
+                </div>
+                <div class="min-w-0">
+                    <h2 id="bell-heading" class="text-xs font-bold uppercase tracking-wider text-slate-400">Wake Up Alert</h2>
+                    <p id="bell-status" class="text-sm font-bold text-slate-600 truncate">Tell Mom you are awake</p>
+                </div>
+            </div>
+            <button id="btn-bell-send" onclick="sendWakeUpAlert()" class="bg-rose-500 hover:bg-rose-600 text-white font-bold text-base px-4 py-3 rounded-xl transition active:scale-95 shadow-md shadow-rose-500/10 flex-shrink-0">
+                Ask Mom
+            </button>
+        </section>
+
         <!-- Compact Weekly List -->
         <div class="space-y-2.5">
             <h3 id="weekly-heading" class="text-lg font-extrabold text-slate-500 uppercase tracking-wider px-1">Weekly Plan</h3>
@@ -88,10 +108,8 @@
     </main>
 
     <!-- Slide-over / Compact Bottom Sheet Style Edit Modal -->
-    <div id="edit-modal" class="hidden fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-slate-900/60 backdrop-blur-sm transition-opacity duration-200">
+    <div id="edit-modal" class="hidden fixed inset-0 z-40 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-slate-900/60 backdrop-blur-sm transition-opacity duration-200">
         <div class="bg-white rounded-t-3xl sm:rounded-3xl max-w-md w-full p-6 pb-8 sm:pb-6 shadow-2xl border-t sm:border border-slate-100 transform translate-y-full sm:translate-y-0 sm:scale-95 transition-all duration-200 max-h-[90vh] flex flex-col">
-            
-            <!-- Modal Header -->
             <div class="flex justify-between items-start mb-5 flex-shrink-0">
                 <div>
                     <h3 id="modal-title" class="text-xl font-extrabold text-slate-900">Plan Breakfast</h3>
@@ -102,7 +120,6 @@
                 </button>
             </div>
 
-            <!-- Scrollable Form Body -->
             <div class="space-y-5 overflow-y-auto pr-1 flex-grow">
                 <div>
                     <label id="label-custom" class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5">Custom Breakfast Name</label>
@@ -110,7 +127,6 @@
                         class="w-full px-4 py-3.5 bg-slate-50 border-2 border-slate-200 rounded-xl focus:ring-4 focus:ring-amber-500/20 focus:border-amber-500 focus:bg-white outline-none transition duration-200 text-lg font-bold">
                 </div>
 
-                <!-- Presets Quick Select (Large buttons for easy clicking) -->
                 <div>
                     <label id="label-presets" class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Quick Presets</label>
                     <div class="grid grid-cols-2 gap-2" id="presets-container">
@@ -119,7 +135,6 @@
                 </div>
             </div>
 
-            <!-- Modal Action Footer -->
             <div class="flex gap-3 pt-4 border-t border-slate-100 mt-4 flex-shrink-0">
                 <button id="btn-cancel" onclick="closeModal()" class="flex-1 py-3.5 bg-slate-100 text-slate-700 hover:bg-slate-200 font-bold rounded-xl text-base transition">
                     Cancel
@@ -128,6 +143,22 @@
                     Save Plan
                 </button>
             </div>
+        </div>
+    </div>
+
+    <!-- Alarm Overlay Modal (Pop-up screen for Mom when alert is triggered) -->
+    <div id="alarm-overlay" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/80 backdrop-blur-md transition-opacity duration-300">
+        <div class="bg-white rounded-3xl max-w-sm w-full p-8 text-center shadow-2xl border border-slate-100 transform scale-100 transition-transform duration-300 animate-custom-pulse">
+            <div class="w-20 h-20 bg-rose-100 text-rose-500 rounded-full flex items-center justify-center mx-auto mb-6">
+                <i data-lucide="bell-ring" class="w-10 h-10 animate-bounce"></i>
+            </div>
+            
+            <h3 id="alarm-title" class="text-2xl font-extrabold text-slate-900 mb-2">Breakfast Alert!</h3>
+            <p id="alarm-text" class="text-lg text-slate-600 mb-6">Someone is awake and requested breakfast.</p>
+            
+            <button id="btn-alarm-dismiss" onclick="dismissWakeUpAlert()" class="w-full py-4 bg-rose-500 hover:bg-rose-600 text-white font-bold rounded-2xl text-lg transition active:scale-95 shadow-lg shadow-rose-500/20">
+                I'm on it!
+            </button>
         </div>
     </div>
 
@@ -155,16 +186,36 @@
         }
 
         window.plannerData = {
-            Monday: '', Tuesday: '', Wednesday: '', Thursday: '', Friday: '', Saturday: '', Sunday: ''
+            Monday: '', Tuesday: '', Wednesday: '', Thursday: '', Friday: '', Saturday: '', Sunday: '',
+            breakfastRequest: { active: false, timestamp: 0 }
         };
         window.activeDay = null;
+        let lastAlertTimestamp = 0;
 
+        // Listen to Firestore changes in real-time
         onSnapshot(doc(db, "planners", "weekly-plan"), (docSnap) => {
             if (docSnap.exists()) {
                 window.plannerData = docSnap.data();
             } else {
-                window.plannerData = { Monday: '', Tuesday: '', Wednesday: '', Thursday: '', Friday: '', Saturday: '', Sunday: '' };
+                window.plannerData = { 
+                    Monday: '', Tuesday: '', Wednesday: '', Thursday: '', Friday: '', Saturday: '', Sunday: '',
+                    breakfastRequest: { active: false, timestamp: 0 }
+                };
             }
+
+            // Sync alert state globally
+            const req = window.plannerData.breakfastRequest;
+            if (req && req.active) {
+                showAlarmModal();
+                // Play notification and chime only once when a new request is pushed
+                if (req.timestamp !== lastAlertTimestamp) {
+                    lastAlertTimestamp = req.timestamp;
+                    triggerAlertEffects();
+                }
+            } else {
+                hideAlarmModal();
+            }
+
             window.renderPlanner();
         }, (err) => {
             console.error("Error reading from Firestore:", err);
@@ -172,8 +223,13 @@
             window.renderPlanner();
         });
 
+        // Global save trigger
         window.saveDataToBackend = async function() {
             try {
+                // Ensure request field exists on save
+                if (!window.plannerData.breakfastRequest) {
+                    window.plannerData.breakfastRequest = { active: false, timestamp: 0 };
+                }
                 await setDoc(doc(db, "planners", "weekly-plan"), window.plannerData);
             } catch (e) {
                 console.error("Firestore write failed:", e);
@@ -206,6 +262,13 @@
                 planTitle: "Plan for ",
                 placeholder: "e.g., Avocado Toast",
                 todayLabel: "Today",
+                bellHeading: "Wake Up Alert",
+                bellStatus: "Tell Mom you are awake",
+                bellBtn: "Ask Mom",
+                bellSent: "Sent!",
+                alarmHeader: "Breakfast Alert!",
+                alarmText: "Someone is awake and requested breakfast.",
+                alarmDismiss: "I'm on it!",
                 days: {
                     Monday: "Monday",
                     Tuesday: "Tuesday",
@@ -244,6 +307,13 @@
                 planTitle: "منصوبہ برائے ",
                 placeholder: "مثال کے طور پر: انڈے اور ٹوسٹ",
                 todayLabel: "آج",
+                bellHeading: "جاگنے کی اطلاع",
+                bellStatus: "امی کو بتائیں کہ آپ جاگ گئے ہیں",
+                bellBtn: "ناشتہ تیار کریں",
+                bellSent: "بھیج دیا!",
+                alarmHeader: "ناشتے کا الرٹ!",
+                alarmText: "کوئی جاگ گیا ہے اور ناشتے کی فرمائش کی ہے۔",
+                alarmDismiss: "ٹھیک ہے، میں بناتی ہوں",
                 days: {
                     Monday: "پیر",
                     Tuesday: "منگل",
@@ -273,6 +343,13 @@
             return daysOfWeek[date.getDay()];
         }
 
+        // Request Browser Notification Permissions gracefully on interactions
+        function askNotificationPermission() {
+            if ("Notification" in window && Notification.permission === "default") {
+                Notification.requestPermission();
+            }
+        }
+
         function updateUITexts() {
             const t = translations[currentLang];
             
@@ -296,6 +373,32 @@
             document.getElementById('btn-save').innerText = t.save;
             document.getElementById('breakfast-input').placeholder = t.placeholder;
 
+            // Update Alert Widget Texts
+            document.getElementById('bell-heading').innerText = t.bellHeading;
+            
+            const isAlertActive = window.plannerData.breakfastRequest && window.plannerData.breakfastRequest.active;
+            const sendButton = document.getElementById('btn-bell-send');
+            const bellIcon = document.getElementById('bell-icon');
+
+            if (isAlertActive) {
+                document.getElementById('bell-status').innerText = t.bellSent;
+                sendButton.innerText = t.bellSent;
+                sendButton.disabled = true;
+                sendButton.classList.replace('bg-rose-500', 'bg-rose-300');
+                bellIcon.classList.add('animate-swing', 'text-rose-500');
+            } else {
+                document.getElementById('bell-status').innerText = t.bellStatus;
+                sendButton.innerText = t.bellBtn;
+                sendButton.disabled = false;
+                sendButton.classList.replace('bg-rose-300', 'bg-rose-500');
+                bellIcon.classList.remove('animate-swing', 'text-rose-500');
+            }
+
+            // Alarm Overlay translation
+            document.getElementById('alarm-title').innerText = t.alarmHeader;
+            document.getElementById('alarm-text').innerText = t.alarmText;
+            document.getElementById('btn-alarm-dismiss').innerText = t.alarmDismiss;
+
             document.getElementById('lang-selector').value = currentLang;
         }
 
@@ -318,13 +421,11 @@
                 const cardHtml = `
                     <div onclick="openModal('${dayKey}')" class="bg-white border ${isPlanned ? 'border-amber-300 ring-1 ring-amber-100/50 shadow-sm' : 'border-slate-200 border-dashed'} rounded-xl p-3.5 flex items-center justify-between gap-3 cursor-pointer hover:bg-slate-50 transition active:scale-[0.99]">
                         <div class="flex items-center gap-3.5 min-w-0 flex-1">
-                            <!-- Left: Day Label & Today Tag -->
                             <div class="w-16 sm:w-20 flex-shrink-0 flex flex-col">
                                 <span class="text-base font-extrabold text-slate-800 ${todayEng === dayKey ? 'text-amber-500 underline decoration-2' : ''}">${translatedDayName}</span>
                                 ${todayEng === dayKey ? `<span class="text-[10px] font-extrabold uppercase tracking-wider text-amber-500 mt-[-2px]">${t.todayLabel}</span>` : ''}
                             </div>
                             
-                            <!-- Middle: Meal Selection -->
                             <div class="flex items-center gap-2 min-w-0 flex-1">
                                 ${isPlanned ? `
                                     <span class="text-2xl flex-shrink-0 leading-none">${getMealEmoji(meal)}</span>
@@ -335,7 +436,6 @@
                             </div>
                         </div>
 
-                        <!-- Right: Context Action Button (Clear or Add) -->
                         <div class="flex items-center flex-shrink-0">
                             ${isPlanned ? `
                                 <button onclick="event.stopPropagation(); clearDay('${dayKey}')" class="p-2.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition" title="${t.clear}">
@@ -354,6 +454,85 @@
 
             renderPresets();
             lucide.createIcons();
+        }
+
+        // Alarm Trigger Functions
+        async function sendWakeUpAlert() {
+            askNotificationPermission();
+            window.plannerData.breakfastRequest = {
+                active: true,
+                timestamp: Date.now()
+            };
+            if (typeof window.saveDataToBackend === 'function') {
+                await window.saveDataToBackend();
+            }
+        }
+
+        async function dismissWakeUpAlert() {
+            window.plannerData.breakfastRequest = {
+                active: false,
+                timestamp: Date.now()
+            };
+            if (typeof window.saveDataToBackend === 'function') {
+                await window.saveDataToBackend();
+            }
+        }
+
+        function showAlarmModal() {
+            const overlay = document.getElementById('alarm-overlay');
+            overlay.classList.remove('hidden');
+        }
+
+        function hideAlarmModal() {
+            const overlay = document.getElementById('alarm-overlay');
+            overlay.classList.add('hidden');
+        }
+
+        // Custom chime generated dynamically using Web Audio API (No files to download or fail)
+        function playChime() {
+            try {
+                const ctx = new (window.AudioContext || window.webkitAudioContext)();
+                const now = ctx.currentTime;
+                
+                const playNote = (freq, start, duration) => {
+                    const osc = ctx.createOscillator();
+                    const gain = ctx.createGain();
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(freq, start);
+                    
+                    gain.gain.setValueAtTime(0, start);
+                    gain.gain.linearRampToValueAtTime(0.3, start + 0.05);
+                    gain.gain.exponentialRampToValueAtTime(0.01, start + duration);
+                    
+                    osc.connect(gain);
+                    gain.connect(ctx.destination);
+                    osc.start(start);
+                    osc.stop(start + duration);
+                };
+                
+                // Play a pleasant, noticeable double bell chime
+                playNote(523.25, now, 0.4);      // C5
+                playNote(659.25, now + 0.15, 0.5); // E5
+            } catch (e) {
+                console.log("Audio play blocked by browser protocol:", e);
+            }
+        }
+
+        // Trigger notifications and sounds (handles browser safety blocks gracefully)
+        function triggerAlertEffects() {
+            const isUrdu = currentLang === 'ur';
+            const title = isUrdu ? "ناشتہ تیار کریں!" : "Make Breakfast!";
+            const body = isUrdu ? "کوئی بیدار ہو گیا ہے اور ناشتے کے لیے تیار ہے۔" : "Someone is awake and requested breakfast.";
+
+            // Standard Web Push Push API if permission was granted
+            if ("Notification" in window && Notification.permission === "granted") {
+                new Notification(title, {
+                    body: body,
+                    icon: "icon.svg"
+                });
+            }
+
+            playChime();
         }
 
         function renderPresets() {
@@ -400,7 +579,6 @@
             const modal = document.getElementById('edit-modal');
             modal.classList.remove('hidden');
             setTimeout(() => {
-                // Animate bottom-sheet style layout up on mobile, center scale on desktop
                 if (window.innerWidth < 640) {
                     modal.firstElementChild.classList.remove('translate-y-full');
                     modal.firstElementChild.classList.add('translate-y-0');
@@ -461,6 +639,10 @@
         document.getElementById('edit-modal').addEventListener('click', function(e) {
             if (e.target === this) closeModal();
         });
+
+        // Trigger permission check dynamically on first touch interface interaction
+        document.body.addEventListener('touchstart', askNotificationPermission, { once: true });
+        document.body.addEventListener('click', askNotificationPermission, { once: true });
 
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
