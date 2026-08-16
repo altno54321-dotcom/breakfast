@@ -207,10 +207,9 @@
             const req = window.plannerData.breakfastRequest;
             if (req && req.active) {
                 showAlarmModal();
-                // Play notification and chime only once when a new request is pushed
                 if (req.timestamp !== lastAlertTimestamp) {
                     lastAlertTimestamp = req.timestamp;
-                    triggerAlertEffects();
+                    triggerLocalAppAlertEffects();
                 }
             } else {
                 hideAlarmModal();
@@ -226,7 +225,6 @@
         // Global save trigger
         window.saveDataToBackend = async function() {
             try {
-                // Ensure request field exists on save
                 if (!window.plannerData.breakfastRequest) {
                     window.plannerData.breakfastRequest = { active: false, timestamp: 0 };
                 }
@@ -241,6 +239,9 @@
 
     <!-- UI Operations Script -->
     <script>
+        // Secret communication channel automatically derived from your project ID
+        const ntfyTopic = "breakfast-bell-f20a8"; 
+
         const translations = {
             en: {
                 appTitle: "Breakfast",
@@ -343,7 +344,6 @@
             return daysOfWeek[date.getDay()];
         }
 
-        // Request Browser Notification Permissions gracefully on interactions
         function askNotificationPermission() {
             if ("Notification" in window && Notification.permission === "default") {
                 Notification.requestPermission();
@@ -367,13 +367,6 @@
             document.getElementById('today-heading').innerText = t.todayHeading;
             document.getElementById('weekly-heading').innerText = t.weeklyHeading;
 
-            document.getElementById('label-custom').innerText = t.customName;
-            document.getElementById('label-presets').innerText = t.presets;
-            document.getElementById('btn-cancel').innerText = t.cancel;
-            document.getElementById('btn-save').innerText = t.save;
-            document.getElementById('breakfast-input').placeholder = t.placeholder;
-
-            // Update Alert Widget Texts
             document.getElementById('bell-heading').innerText = t.bellHeading;
             
             const isAlertActive = window.plannerData.breakfastRequest && window.plannerData.breakfastRequest.active;
@@ -394,7 +387,6 @@
                 bellIcon.classList.remove('animate-swing', 'text-rose-500');
             }
 
-            // Alarm Overlay translation
             document.getElementById('alarm-title').innerText = t.alarmHeader;
             document.getElementById('alarm-text').innerText = t.alarmText;
             document.getElementById('btn-alarm-dismiss').innerText = t.alarmDismiss;
@@ -456,15 +448,35 @@
             lucide.createIcons();
         }
 
-        // Alarm Trigger Functions
+        // Active Wake Up Dispatcher
         async function sendWakeUpAlert() {
-            askNotificationPermission();
+            // 1. Update active status inside the app's shared Firestore document
             window.plannerData.breakfastRequest = {
                 active: true,
                 timestamp: Date.now()
             };
             if (typeof window.saveDataToBackend === 'function') {
                 await window.saveDataToBackend();
+            }
+
+            // 2. Dispatch a true external System Push Notification via ntfy.sh
+            try {
+                const isUrdu = currentLang === 'ur';
+                const title = isUrdu ? "ناشتہ تیار کریں!" : "Make Breakfast!";
+                const body = isUrdu ? "کوئی جاگ گیا ہے اور ناشتے کا انتظار کر رہا ہے۔" : "Someone is awake and waiting for breakfast.";
+
+                await fetch(`https://ntfy.sh/${ntfyTopic}`, {
+                    method: 'POST',
+                    body: body,
+                    headers: {
+                        'Title': title,
+                        'Priority': 'high', // Ensures it vibrates and rings loudly on her phone
+                        'Tags': 'coffee,bell'
+                    }
+                });
+                console.log("System Push Alert successfully sent via ntfy channel.");
+            } catch (e) {
+                console.error("Unable to reach external push service:", e);
             }
         }
 
@@ -518,13 +530,12 @@
             }
         }
 
-        // Trigger notifications and sounds (handles browser safety blocks gracefully)
-        function triggerAlertEffects() {
+        // Local Tab Alerts (Used if she already has the browser tab open)
+        function triggerLocalAppAlertEffects() {
             const isUrdu = currentLang === 'ur';
             const title = isUrdu ? "ناشتہ تیار کریں!" : "Make Breakfast!";
-            const body = isUrdu ? "کوئی بیدار ہو گیا ہے اور ناشتے کے لیے تیار ہے۔" : "Someone is awake and requested breakfast.";
+            const body = isUrdu ? "کوئی جاگ گیا ہے اور ناشتے کے لیے تیار ہے۔" : "Someone is awake and requested breakfast.";
 
-            // Standard Web Push Push API if permission was granted
             if ("Notification" in window && Notification.permission === "granted") {
                 new Notification(title, {
                     body: body,
@@ -639,10 +650,6 @@
         document.getElementById('edit-modal').addEventListener('click', function(e) {
             if (e.target === this) closeModal();
         });
-
-        // Trigger permission check dynamically on first touch interface interaction
-        document.body.addEventListener('touchstart', askNotificationPermission, { once: true });
-        document.body.addEventListener('click', askNotificationPermission, { once: true });
 
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
