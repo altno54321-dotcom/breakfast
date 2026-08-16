@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Breakfast</title>
     <!-- Web App Manifest for PWA -->
     <link rel="manifest" href="manifest.json">
@@ -14,124 +14,128 @@
     <!-- Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Noto+Nastaliq+Urdu:wght@400;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&family=Noto+Nastaliq+Urdu:wght@400;700&display=swap');
         
         .font-urdu {
             font-family: 'Noto Nastaliq Urdu', serif;
-            line-height: 2.2;
+            line-height: 2.0;
         }
         .font-english {
             font-family: 'Plus Jakarta Sans', sans-serif;
+        }
+        
+        /* Prevent elastic bounce scrolling on mobile iOS devices */
+        html, body {
+            overscroll-behavior-y: contain;
         }
     </style>
 </head>
 <body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col font-english selection:bg-amber-100 selection:text-amber-900 transition-all duration-200">
 
-    <!-- Header Section -->
-    <header class="bg-white border-b border-slate-100 py-6 px-4 sticky top-0 z-30 shadow-sm backdrop-blur-md bg-white/95">
-        <div class="max-w-4xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-6">
-            <div class="flex items-center gap-4">
-                <div class="p-3 bg-amber-500 text-white rounded-2xl shadow-lg shadow-amber-500/20">
-                    <i data-lucide="coffee" class="w-8 h-8"></i>
+    <!-- Compact Mobile Header -->
+    <header class="bg-white border-b border-slate-100 py-3.5 px-4 sticky top-0 z-30 shadow-sm backdrop-blur-md bg-white/95">
+        <div class="max-w-md mx-auto flex justify-between items-center">
+            <!-- Brand Logo & Title -->
+            <div class="flex items-center gap-2.5">
+                <div class="p-2 bg-amber-500 text-white rounded-xl shadow-md shadow-amber-500/10">
+                    <i data-lucide="coffee" class="w-5.5 h-5.5"></i>
                 </div>
-                <div>
-                    <h1 id="app-title" class="text-3xl font-bold text-slate-900 tracking-tight">Breakfast</h1>
-                    <p id="app-subtitle" class="text-base text-slate-500">Weekly morning fuel planner</p>
-                </div>
+                <h1 id="app-title" class="text-2xl font-extrabold text-slate-900 tracking-tight">Breakfast</h1>
             </div>
             
-            <!-- Lang Selection & Reset Actions -->
-            <div class="flex flex-wrap items-center gap-4 w-full sm:w-auto justify-end">
-                <!-- Urdu / English Switcher -->
-                <select id="lang-selector" onchange="changeLanguage(this.value)" class="bg-slate-100 text-slate-800 font-bold text-lg px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-amber-500">
-                    <option value="en">English 🇬🇧</option>
-                    <option value="ur">اردو 🇵🇰</option>
+            <!-- Quick Header Controls -->
+            <div class="flex items-center gap-1.5">
+                <!-- Compact Language Selector -->
+                <select id="lang-selector" onchange="changeLanguage(this.value)" class="bg-slate-100 text-slate-800 font-bold text-sm px-3 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-amber-500">
+                    <option value="en">EN</option>
+                    <option value="ur">اردو</option>
                 </select>
 
-                <button onclick="resetWeek()" class="flex items-center gap-2 px-5 py-2.5 text-base font-bold text-slate-500 hover:text-red-600 hover:bg-red-50 rounded-xl transition duration-200 border border-transparent hover:border-red-100">
-                    <i data-lucide="rotate-ccw" class="w-5 h-5"></i>
-                    <span id="btn-reset">Reset Week</span>
+                <!-- Icon-only Reset to Save Mobile Space -->
+                <button onclick="resetWeek()" class="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition" id="btn-reset-container" title="Reset Week">
+                    <i data-lucide="rotate-ccw" class="w-5.5 h-5.5"></i>
                 </button>
             </div>
         </div>
     </header>
 
-    <!-- Main Content -->
-    <main class="flex-grow max-w-4xl w-full mx-auto p-4 sm:p-6 space-y-8">
+    <!-- App Shell Frame (Constrained width so it looks like a clean phone app even on desktop) -->
+    <main class="flex-grow max-w-md w-full mx-auto p-4 space-y-4">
         
-        <!-- Dynamic "Today's Breakfast" Alert Banner (Large & prominent for Mom) -->
-        <section id="todays-banner" class="bg-amber-500 text-white rounded-3xl p-6 sm:p-8 shadow-xl shadow-amber-500/10 flex flex-col sm:flex-row items-center justify-between gap-6">
-            <div class="flex items-center gap-5 w-full sm:w-auto">
-                <div class="p-4 bg-white/20 rounded-2xl text-3xl">
+        <!-- Today's Breakfast Compact Card (Tapping it opens current day edit) -->
+        <section id="todays-banner" onclick="openTodayModal()" class="bg-amber-500 text-white rounded-2xl p-4 shadow-lg shadow-amber-500/10 flex items-center justify-between gap-3 cursor-pointer hover:bg-amber-600 transition active:scale-[0.98]">
+            <div class="flex items-center gap-3.5 min-w-0">
+                <div class="p-3 bg-white/20 rounded-xl text-2xl flex-shrink-0 leading-none">
                     🍳
                 </div>
-                <div>
-                    <h2 id="today-heading" class="text-xl font-bold uppercase tracking-wider text-amber-100">Today's Breakfast</h2>
-                    <p id="today-meal-text" class="text-2xl sm:text-3xl font-extrabold mt-1">Loading...</p>
+                <div class="min-w-0">
+                    <h2 id="today-heading" class="text-xs font-bold uppercase tracking-wider text-amber-100">Today's Breakfast</h2>
+                    <p id="today-meal-text" class="text-lg font-extrabold mt-0.5 truncate">Loading...</p>
                 </div>
             </div>
-            <button id="today-edit-btn" onclick="openTodayModal()" class="w-full sm:w-auto bg-white text-amber-950 font-bold text-lg px-6 py-3 rounded-2xl hover:bg-amber-50 transition active:scale-95 shadow-md">
-                Change Today
-            </button>
+            <div class="p-1.5 bg-white/10 rounded-lg flex-shrink-0">
+                <i data-lucide="chevron-right" class="w-5 h-5"></i>
+            </div>
         </section>
 
-        <!-- 7 Days Grid -->
-        <div class="space-y-4">
-            <h3 id="weekly-heading" class="text-2xl font-bold text-slate-800 px-1">Weekly Plan</h3>
-            <div id="planner-grid" class="grid grid-cols-1 gap-4">
-                <!-- Days rendered dynamically -->
+        <!-- Compact Weekly List -->
+        <div class="space-y-2.5">
+            <h3 id="weekly-heading" class="text-lg font-extrabold text-slate-500 uppercase tracking-wider px-1">Weekly Plan</h3>
+            <div id="planner-grid" class="space-y-2">
+                <!-- Standard row items dynamically loaded here -->
             </div>
         </div>
     </main>
 
-    <!-- Slide-over / Edit Modal -->
-    <div id="edit-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm transition-opacity duration-200">
-        <div class="bg-white rounded-3xl max-w-lg w-full p-6 sm:p-8 shadow-2xl border border-slate-100 transform scale-95 transition-all duration-200">
-            <div class="flex justify-between items-start mb-6">
+    <!-- Slide-over / Compact Bottom Sheet Style Edit Modal -->
+    <div id="edit-modal" class="hidden fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-slate-900/60 backdrop-blur-sm transition-opacity duration-200">
+        <div class="bg-white rounded-t-3xl sm:rounded-3xl max-w-md w-full p-6 pb-8 sm:pb-6 shadow-2xl border-t sm:border border-slate-100 transform translate-y-full sm:translate-y-0 sm:scale-95 transition-all duration-200 max-h-[90vh] flex flex-col">
+            
+            <!-- Modal Header -->
+            <div class="flex justify-between items-start mb-5 flex-shrink-0">
                 <div>
-                    <h3 id="modal-title" class="text-2xl font-bold text-slate-900">Plan Breakfast</h3>
-                    <p id="modal-subtitle" class="text-base text-slate-500">Select or enter your meal</p>
+                    <h3 id="modal-title" class="text-xl font-extrabold text-slate-900">Plan Breakfast</h3>
+                    <p id="modal-subtitle" class="text-xs text-slate-500">Select or enter your meal</p>
                 </div>
                 <button onclick="closeModal()" class="p-2 hover:bg-slate-100 rounded-xl text-slate-400 hover:text-slate-600 transition">
                     <i data-lucide="x" class="w-6 h-6"></i>
                 </button>
             </div>
 
-            <!-- Meal Form -->
-            <div class="space-y-6">
+            <!-- Scrollable Form Body -->
+            <div class="space-y-5 overflow-y-auto pr-1 flex-grow">
                 <div>
-                    <label id="label-custom" class="block text-sm font-bold uppercase tracking-wider text-slate-400 mb-2">Custom Breakfast Name</label>
+                    <label id="label-custom" class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5">Custom Breakfast Name</label>
                     <input type="text" id="breakfast-input" placeholder="e.g., Avocado Toast" 
-                        class="w-full px-4 py-4 bg-slate-50 border-2 border-slate-200 rounded-xl focus:ring-4 focus:ring-amber-500/20 focus:border-amber-500 focus:bg-white outline-none transition duration-200 text-lg font-medium">
+                        class="w-full px-4 py-3.5 bg-slate-50 border-2 border-slate-200 rounded-xl focus:ring-4 focus:ring-amber-500/20 focus:border-amber-500 focus:bg-white outline-none transition duration-200 text-lg font-bold">
                 </div>
 
                 <!-- Presets Quick Select (Large buttons for easy clicking) -->
                 <div>
-                    <label id="label-presets" class="block text-sm font-bold uppercase tracking-wider text-slate-400 mb-2">Quick Presets</label>
-                    <div class="grid grid-cols-2 gap-3" id="presets-container">
-                        <!-- Quick presets filled dynamically -->
+                    <label id="label-presets" class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Quick Presets</label>
+                    <div class="grid grid-cols-2 gap-2" id="presets-container">
+                        <!-- Filled dynamically -->
                     </div>
                 </div>
+            </div>
 
-                <!-- Modal Actions -->
-                <div class="flex gap-4 pt-2">
-                    <button id="btn-cancel" onclick="closeModal()" class="flex-1 py-4 bg-slate-100 text-slate-700 hover:bg-slate-200 font-bold rounded-2xl text-lg transition">
-                        Cancel
-                    </button>
-                    <button id="btn-save" onclick="saveBreakfast()" class="flex-1 py-4 bg-amber-500 hover:bg-amber-600 text-white font-bold rounded-2xl text-lg transition shadow-lg shadow-amber-500/10">
-                        Save Plan
-                    </button>
-                </div>
+            <!-- Modal Action Footer -->
+            <div class="flex gap-3 pt-4 border-t border-slate-100 mt-4 flex-shrink-0">
+                <button id="btn-cancel" onclick="closeModal()" class="flex-1 py-3.5 bg-slate-100 text-slate-700 hover:bg-slate-200 font-bold rounded-xl text-base transition">
+                    Cancel
+                </button>
+                <button id="btn-save" onclick="saveBreakfast()" class="flex-1 py-3.5 bg-amber-500 hover:bg-amber-600 text-white font-bold rounded-xl text-base transition shadow-lg shadow-amber-500/10">
+                    Save Plan
+                </button>
             </div>
         </div>
     </div>
 
-    <!-- Firebase Configuration -->
+    <!-- Firebase Integration -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-        // Integrated user config
         const firebaseConfig = {
             apiKey: "AIzaSyAvvR2Jqox9gTouYUUq3B5vchVMsqf1rzc",
             authDomain: "breakfast-f20a8.firebaseapp.com",
@@ -150,13 +154,11 @@
             console.error("Firebase initialization failed:", err);
         }
 
-        // Global State
         window.plannerData = {
             Monday: '', Tuesday: '', Wednesday: '', Thursday: '', Friday: '', Saturday: '', Sunday: ''
         };
         window.activeDay = null;
 
-        // Listen to Firestore changes in real-time
         onSnapshot(doc(db, "planners", "weekly-plan"), (docSnap) => {
             if (docSnap.exists()) {
                 window.plannerData = docSnap.data();
@@ -166,18 +168,15 @@
             window.renderPlanner();
         }, (err) => {
             console.error("Error reading from Firestore:", err);
-            // Local fallback if Firebase rules reject the read
             window.plannerData = JSON.parse(localStorage.getItem('breakfastPlannerData')) || window.plannerData;
             window.renderPlanner();
         });
 
-        // Global save trigger
         window.saveDataToBackend = async function() {
             try {
                 await setDoc(doc(db, "planners", "weekly-plan"), window.plannerData);
             } catch (e) {
                 console.error("Firestore write failed:", e);
-                // Save locally if Firestore database rules block the write
                 localStorage.setItem('breakfastPlannerData', JSON.stringify(window.plannerData));
                 window.renderPlanner();
             }
@@ -191,12 +190,12 @@
                 appTitle: "Breakfast",
                 appSubtitle: "Weekly morning fuel planner",
                 todayHeading: "Today's Breakfast",
-                noBreakfastToday: "No breakfast planned for today yet.",
+                noBreakfastToday: "No plan set for today",
                 changeToday: "Change Today",
                 weeklyHeading: "Weekly Plan",
                 resetWeek: "Reset Week",
                 resetConfirm: "Are you sure you want to clear your planned breakfasts for the entire week?",
-                noMeal: "No breakfast planned yet",
+                noMeal: "Tap to plan...",
                 addBreakfast: "Add Breakfast",
                 edit: "Edit",
                 clear: "Clear",
@@ -206,6 +205,7 @@
                 cancel: "Cancel",
                 planTitle: "Plan for ",
                 placeholder: "e.g., Avocado Toast",
+                todayLabel: "Today",
                 days: {
                     Monday: "Monday",
                     Tuesday: "Tuesday",
@@ -228,12 +228,12 @@
                 appTitle: "ناشتہ",
                 appSubtitle: "ہفتہ وار ناشتے کا منصوبہ",
                 todayHeading: "آج کا ناشتہ",
-                noBreakfastToday: "آج کے لیے کوئی ناشتہ طے نہیں ہے۔",
+                noBreakfastToday: "آج کا کوئی منصوبہ نہیں ہے",
                 changeToday: "آج کا تبدیل کریں",
                 weeklyHeading: "پورے ہفتے کا منصوبہ",
                 resetWeek: "ہفتہ ری سیٹ کریں",
                 resetConfirm: "کیا آپ واقعی پورا ہفتہ صاف کرنا چاہتے ہیں؟",
-                noMeal: "ابھی تک کوئی ناشتہ منتخب نہیں کیا گیا",
+                noMeal: "منصوبہ بندی کریں...",
                 addBreakfast: "ناشتہ شامل کریں",
                 edit: "تبدیل کریں",
                 clear: "صاف کریں",
@@ -243,6 +243,7 @@
                 cancel: "منسوخ کریں",
                 planTitle: "منصوبہ برائے ",
                 placeholder: "مثال کے طور پر: انڈے اور ٹوسٹ",
+                todayLabel: "آج",
                 days: {
                     Monday: "پیر",
                     Tuesday: "منگل",
@@ -286,11 +287,8 @@
             }
 
             document.getElementById('app-title').innerText = t.appTitle;
-            document.getElementById('app-subtitle').innerText = t.appSubtitle;
             document.getElementById('today-heading').innerText = t.todayHeading;
-            document.getElementById('today-edit-btn').innerText = t.changeToday;
             document.getElementById('weekly-heading').innerText = t.weeklyHeading;
-            document.getElementById('btn-reset').innerText = t.resetWeek;
 
             document.getElementById('label-custom').innerText = t.customName;
             document.getElementById('label-presets').innerText = t.presets;
@@ -318,34 +316,35 @@
                 const translatedDayName = t.days[dayKey];
 
                 const cardHtml = `
-                    <div class="bg-white border ${isPlanned ? 'border-amber-300 ring-1 ring-amber-100 shadow-sm' : 'border-slate-200 border-dashed'} rounded-2xl p-5 sm:p-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 transition hover:shadow-md">
-                        <div class="flex items-center gap-4">
-                            <div class="w-24 sm:w-28 flex-shrink-0">
-                                <span class="text-xl font-extrabold text-slate-800 ${todayEng === dayKey ? 'text-amber-500 underline decoration-2' : ''}">${translatedDayName}</span>
+                    <div onclick="openModal('${dayKey}')" class="bg-white border ${isPlanned ? 'border-amber-300 ring-1 ring-amber-100/50 shadow-sm' : 'border-slate-200 border-dashed'} rounded-xl p-3.5 flex items-center justify-between gap-3 cursor-pointer hover:bg-slate-50 transition active:scale-[0.99]">
+                        <div class="flex items-center gap-3.5 min-w-0 flex-1">
+                            <!-- Left: Day Label & Today Tag -->
+                            <div class="w-16 sm:w-20 flex-shrink-0 flex flex-col">
+                                <span class="text-base font-extrabold text-slate-800 ${todayEng === dayKey ? 'text-amber-500 underline decoration-2' : ''}">${translatedDayName}</span>
+                                ${todayEng === dayKey ? `<span class="text-[10px] font-extrabold uppercase tracking-wider text-amber-500 mt-[-2px]">${t.todayLabel}</span>` : ''}
                             </div>
                             
-                            <div class="flex items-center gap-3">
+                            <!-- Middle: Meal Selection -->
+                            <div class="flex items-center gap-2 min-w-0 flex-1">
                                 ${isPlanned ? `
-                                    <span class="text-3xl leading-none">${getMealEmoji(meal)}</span>
-                                    <h4 class="font-bold text-slate-900 text-lg sm:text-xl">${meal}</h4>
+                                    <span class="text-2xl flex-shrink-0 leading-none">${getMealEmoji(meal)}</span>
+                                    <h4 class="font-extrabold text-slate-900 text-base truncate">${meal}</h4>
                                 ` : `
-                                    <span class="text-slate-400 text-base italic font-normal">${t.noMeal}</span>
+                                    <span class="text-slate-400 text-sm italic font-normal">${t.noMeal}</span>
                                 `}
                             </div>
                         </div>
 
-                        <div class="flex items-center gap-3 w-full sm:w-auto justify-end border-t border-slate-50 pt-3 sm:pt-0 sm:border-0">
+                        <!-- Right: Context Action Button (Clear or Add) -->
+                        <div class="flex items-center flex-shrink-0">
                             ${isPlanned ? `
-                                <button onclick="openModal('${dayKey}')" class="text-base text-amber-600 hover:text-amber-700 bg-amber-50 hover:bg-amber-100 px-4 py-2 rounded-xl font-bold flex items-center gap-1.5 transition">
-                                    <i data-lucide="edit-3" class="w-4 h-4"></i> ${t.edit}
-                                </button>
-                                <button onclick="clearDay('${dayKey}')" class="text-base text-red-500 hover:text-red-700 bg-red-50 hover:bg-red-100 px-4 py-2 rounded-xl font-bold flex items-center gap-1.5 transition">
-                                    <i data-lucide="trash-2" class="w-4 h-4"></i> ${t.clear}
+                                <button onclick="event.stopPropagation(); clearDay('${dayKey}')" class="p-2.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition" title="${t.clear}">
+                                    <i data-lucide="trash-2" class="w-5 h-5"></i>
                                 </button>
                             ` : `
-                                <button onclick="openModal('${dayKey}')" class="text-base text-white bg-amber-500 hover:bg-amber-600 px-5 py-2.5 rounded-xl font-bold flex items-center gap-1.5 transition shadow-sm">
-                                    <i data-lucide="plus" class="w-5 h-5"></i> ${t.addBreakfast}
-                                </button>
+                                <div class="p-2 text-amber-500 bg-amber-50 rounded-xl">
+                                    <i data-lucide="plus" class="w-4.5 h-4.5"></i>
+                                </div>
                             `}
                         </div>
                     </div>
@@ -364,7 +363,7 @@
             
             t.presetsList.forEach(p => {
                 const btn = document.createElement('button');
-                btn.className = "flex items-center gap-3 p-3.5 border-2 border-slate-100 rounded-2xl hover:border-amber-300 hover:bg-amber-50 text-slate-800 text-lg font-bold transition text-left w-full";
+                btn.className = "flex items-center gap-3 p-3 border-2 border-slate-100 rounded-2xl hover:border-amber-300 hover:bg-amber-50 text-slate-800 text-base font-bold transition text-left w-full";
                 btn.innerHTML = `<span>${p.emoji}</span> <span class="truncate">${p.name}</span>`;
                 btn.onclick = () => {
                     document.getElementById('breakfast-input').value = p.name;
@@ -395,14 +394,20 @@
             window.activeDay = day;
             const t = translations[currentLang];
             
-            document.getElementById('modal-title').innerText = `${t.planTitle} ${t.days[day]}`;
+            document.getElementById('modal-title').innerText = `${t.planTitle}${t.days[day]}`;
             document.getElementById('breakfast-input').value = window.plannerData[day] || '';
             
             const modal = document.getElementById('edit-modal');
             modal.classList.remove('hidden');
             setTimeout(() => {
-                modal.firstElementChild.classList.remove('scale-95');
-                modal.firstElementChild.classList.add('scale-100');
+                // Animate bottom-sheet style layout up on mobile, center scale on desktop
+                if (window.innerWidth < 640) {
+                    modal.firstElementChild.classList.remove('translate-y-full');
+                    modal.firstElementChild.classList.add('translate-y-0');
+                } else {
+                    modal.firstElementChild.classList.remove('scale-95');
+                    modal.firstElementChild.classList.add('scale-100');
+                }
             }, 10);
         }
 
@@ -412,8 +417,13 @@
 
         function closeModal() {
             const modal = document.getElementById('edit-modal');
-            modal.firstElementChild.classList.remove('scale-100');
-            modal.firstElementChild.classList.add('scale-95');
+            if (window.innerWidth < 640) {
+                modal.firstElementChild.classList.remove('translate-y-0');
+                modal.firstElementChild.classList.add('translate-y-full');
+            } else {
+                modal.firstElementChild.classList.remove('scale-100');
+                modal.firstElementChild.classList.add('scale-95');
+            }
             setTimeout(() => {
                 modal.classList.add('hidden');
                 window.activeDay = null;
