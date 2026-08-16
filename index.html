@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Breakfast</title>
+    <!-- Web App Manifest for PWA -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#f59e0b">
+    <link rel="apple-touch-icon" href="icon.svg">
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Noto+Nastaliq+Urdu:wght@400;700&display=swap');
+        
+        .font-urdu {
+            font-family: 'Noto Nastaliq Urdu', serif;
+            line-height: 2.2;
+        }
+        .font-english {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col font-english selection:bg-amber-100 selection:text-amber-900 transition-all duration-200">
+
+    <!-- Header Section -->
+    <header class="bg-white border-b border-slate-100 py-6 px-4 sticky top-0 z-30 shadow-sm backdrop-blur-md bg-white/95">
+        <div class="max-w-4xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-6">
+            <div class="flex items-center gap-4">
+                <div class="p-3 bg-amber-500 text-white rounded-2xl shadow-lg shadow-amber-500/20">
+                    <i data-lucide="coffee" class="w-8 h-8"></i>
+                </div>
+                <div>
+                    <h1 id="app-title" class="text-3xl font-bold text-slate-900 tracking-tight">Breakfast</h1>
+                    <p id="app-subtitle" class="text-base text-slate-500">Weekly morning fuel planner</p>
+                </div>
+            </div>
+            
+            <!-- Lang Selection & Reset Actions -->
+            <div class="flex flex-wrap items-center gap-4 w-full sm:w-auto justify-end">
+                <!-- Urdu / English Switcher -->
+                <select id="lang-selector" onchange="changeLanguage(this.value)" class="bg-slate-100 text-slate-800 font-bold text-lg px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-amber-500">
+                    <option value="en">English 🇬🇧</option>
+                    <option value="ur">اردو 🇵🇰</option>
+                </select>
+
+                <button onclick="resetWeek()" class="flex items-center gap-2 px-5 py-2.5 text-base font-bold text-slate-500 hover:text-red-600 hover:bg-red-50 rounded-xl transition duration-200 border border-transparent hover:border-red-100">
+                    <i data-lucide="rotate-ccw" class="w-5 h-5"></i>
+                    <span id="btn-reset">Reset Week</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="flex-grow max-w-4xl w-full mx-auto p-4 sm:p-6 space-y-8">
+        
+        <!-- Dynamic "Today's Breakfast" Alert Banner (Large & prominent for Mom) -->
+        <section id="todays-banner" class="bg-amber-500 text-white rounded-3xl p-6 sm:p-8 shadow-xl shadow-amber-500/10 flex flex-col sm:flex-row items-center justify-between gap-6">
+            <div class="flex items-center gap-5 w-full sm:w-auto">
+                <div class="p-4 bg-white/20 rounded-2xl text-3xl">
+                    🍳
+                </div>
+                <div>
+                    <h2 id="today-heading" class="text-xl font-bold uppercase tracking-wider text-amber-100">Today's Breakfast</h2>
+                    <p id="today-meal-text" class="text-2xl sm:text-3xl font-extrabold mt-1">Loading...</p>
+                </div>
+            </div>
+            <button id="today-edit-btn" onclick="openTodayModal()" class="w-full sm:w-auto bg-white text-amber-950 font-bold text-lg px-6 py-3 rounded-2xl hover:bg-amber-50 transition active:scale-95 shadow-md">
+                Change Today
+            </button>
+        </section>
+
+        <!-- 7 Days Grid -->
+        <div class="space-y-4">
+            <h3 id="weekly-heading" class="text-2xl font-bold text-slate-800 px-1">Weekly Plan</h3>
+            <div id="planner-grid" class="grid grid-cols-1 gap-4">
+                <!-- Days rendered dynamically -->
+            </div>
+        </div>
+    </main>
+
+    <!-- Slide-over / Edit Modal -->
+    <div id="edit-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm transition-opacity duration-200">
+        <div class="bg-white rounded-3xl max-w-lg w-full p-6 sm:p-8 shadow-2xl border border-slate-100 transform scale-95 transition-all duration-200">
+            <div class="flex justify-between items-start mb-6">
+                <div>
+                    <h3 id="modal-title" class="text-2xl font-bold text-slate-900">Plan Breakfast</h3>
+                    <p id="modal-subtitle" class="text-base text-slate-500">Select or enter your meal</p>
+                </div>
+                <button onclick="closeModal()" class="p-2 hover:bg-slate-100 rounded-xl text-slate-400 hover:text-slate-600 transition">
+                    <i data-lucide="x" class="w-6 h-6"></i>
+                </button>
+            </div>
+
+            <!-- Meal Form -->
+            <div class="space-y-6">
+                <div>
+                    <label id="label-custom" class="block text-sm font-bold uppercase tracking-wider text-slate-400 mb-2">Custom Breakfast Name</label>
+                    <input type="text" id="breakfast-input" placeholder="e.g., Avocado Toast" 
+                        class="w-full px-4 py-4 bg-slate-50 border-2 border-slate-200 rounded-xl focus:ring-4 focus:ring-amber-500/20 focus:border-amber-500 focus:bg-white outline-none transition duration-200 text-lg font-medium">
+                </div>
+
+                <!-- Presets Quick Select (Large buttons for easy clicking) -->
+                <div>
+                    <label id="label-presets" class="block text-sm font-bold uppercase tracking-wider text-slate-400 mb-2">Quick Presets</label>
+                    <div class="grid grid-cols-2 gap-3" id="presets-container">
+                        <!-- Quick presets filled dynamically -->
+                    </div>
+                </div>
+
+                <!-- Modal Actions -->
+                <div class="flex gap-4 pt-2">
+                    <button id="btn-cancel" onclick="closeModal()" class="flex-1 py-4 bg-slate-100 text-slate-700 hover:bg-slate-200 font-bold rounded-2xl text-lg transition">
+                        Cancel
+                    </button>
+                    <button id="btn-save" onclick="saveBreakfast()" class="flex-1 py-4 bg-amber-500 hover:bg-amber-600 text-white font-bold rounded-2xl text-lg transition shadow-lg shadow-amber-500/10">
+                        Save Plan
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Firebase Configuration -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+        // Integrated user config
+        const firebaseConfig = {
+            apiKey: "AIzaSyAvvR2Jqox9gTouYUUq3B5vchVMsqf1rzc",
+            authDomain: "breakfast-f20a8.firebaseapp.com",
+            projectId: "breakfast-f20a8",
+            storageBucket: "breakfast-f20a8.firebasestorage.app",
+            messagingSenderId: "674369144145",
+            appId: "1:674369144145:web:c08d62b7fdd6a40d9d3f70"
+        };
+
+        let db;
+        try {
+            const app = initializeApp(firebaseConfig);
+            db = getFirestore(app);
+            console.log("Firebase initialized successfully.");
+        } catch (err) {
+            console.error("Firebase initialization failed:", err);
+        }
+
+        // Global State
+        window.plannerData = {
+            Monday: '', Tuesday: '', Wednesday: '', Thursday: '', Friday: '', Saturday: '', Sunday: ''
+        };
+        window.activeDay = null;
+
+        // Listen to Firestore changes in real-time
+        onSnapshot(doc(db, "planners", "weekly-plan"), (docSnap) => {
+            if (docSnap.exists()) {
+                window.plannerData = docSnap.data();
+            } else {
+                window.plannerData = { Monday: '', Tuesday: '', Wednesday: '', Thursday: '', Friday: '', Saturday: '', Sunday: '' };
+            }
+            window.renderPlanner();
+        }, (err) => {
+            console.error("Error reading from Firestore:", err);
+            // Local fallback if Firebase rules reject the read
+            window.plannerData = JSON.parse(localStorage.getItem('breakfastPlannerData')) || window.plannerData;
+            window.renderPlanner();
+        });
+
+        // Global save trigger
+        window.saveDataToBackend = async function() {
+            try {
+                await setDoc(doc(db, "planners", "weekly-plan"), window.plannerData);
+            } catch (e) {
+                console.error("Firestore write failed:", e);
+                // Save locally if Firestore database rules block the write
+                localStorage.setItem('breakfastPlannerData', JSON.stringify(window.plannerData));
+                window.renderPlanner();
+            }
+        }
+    </script>
+
+    <!-- UI Operations Script -->
+    <script>
+        const translations = {
+            en: {
+                appTitle: "Breakfast",
+                appSubtitle: "Weekly morning fuel planner",
+                todayHeading: "Today's Breakfast",
+                noBreakfastToday: "No breakfast planned for today yet.",
+                changeToday: "Change Today",
+                weeklyHeading: "Weekly Plan",
+                resetWeek: "Reset Week",
+                resetConfirm: "Are you sure you want to clear your planned breakfasts for the entire week?",
+                noMeal: "No breakfast planned yet",
+                addBreakfast: "Add Breakfast",
+                edit: "Edit",
+                clear: "Clear",
+                customName: "Custom Breakfast Name",
+                presets: "Quick Presets",
+                save: "Save Plan",
+                cancel: "Cancel",
+                planTitle: "Plan for ",
+                placeholder: "e.g., Avocado Toast",
+                days: {
+                    Monday: "Monday",
+                    Tuesday: "Tuesday",
+                    Wednesday: "Wednesday",
+                    Thursday: "Thursday",
+                    Friday: "Friday",
+                    Saturday: "Saturday",
+                    Sunday: "Sunday"
+                },
+                presetsList: [
+                    { emoji: '🍳', name: 'Eggs & Toast' },
+                    { emoji: '🥞', name: 'Fluffy Pancakes' },
+                    { emoji: '🥣', name: 'Oatmeal Bowl' },
+                    { emoji: '🥤', name: 'Fruit Smoothie' },
+                    { emoji: '🥑', name: 'Avocado Toast' },
+                    { emoji: '🧇', name: 'Belgian Waffles' }
+                ]
+            },
+            ur: {
+                appTitle: "ناشتہ",
+                appSubtitle: "ہفتہ وار ناشتے کا منصوبہ",
+                todayHeading: "آج کا ناشتہ",
+                noBreakfastToday: "آج کے لیے کوئی ناشتہ طے نہیں ہے۔",
+                changeToday: "آج کا تبدیل کریں",
+                weeklyHeading: "پورے ہفتے کا منصوبہ",
+                resetWeek: "ہفتہ ری سیٹ کریں",
+                resetConfirm: "کیا آپ واقعی پورا ہفتہ صاف کرنا چاہتے ہیں؟",
+                noMeal: "ابھی تک کوئی ناشتہ منتخب نہیں کیا گیا",
+                addBreakfast: "ناشتہ شامل کریں",
+                edit: "تبدیل کریں",
+                clear: "صاف کریں",
+                customName: "اپنی مرضی کا ناشتہ لکھیں",
+                presets: "جلدی سے منتخب کریں",
+                save: "محفوظ کریں",
+                cancel: "منسوخ کریں",
+                planTitle: "منصوبہ برائے ",
+                placeholder: "مثال کے طور پر: انڈے اور ٹوسٹ",
+                days: {
+                    Monday: "پیر",
+                    Tuesday: "منگل",
+                    Wednesday: "بدھ",
+                    Thursday: "جمعرات",
+                    Friday: "جمعہ",
+                    Saturday: "ہفتہ",
+                    Sunday: "اتوار"
+                },
+                presetsList: [
+                    { emoji: '🍳', name: 'انڈے اور ٹوسٹ' },
+                    { emoji: '🥞', name: 'پین کیکس' },
+                    { emoji: '🥣', name: 'دلیہ' },
+                    { emoji: '🥤', name: 'فروٹ اسموتھی' },
+                    { emoji: '🥑', name: 'ایواکاڈو ٹوسٹ' },
+                    { emoji: '🧇', name: 'وافلز' }
+                ]
+            }
+        };
+
+        const daysKeyList = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+        let currentLang = localStorage.getItem('breakfastLang') || 'en';
+
+        function getTodayEnglishDay() {
+            const date = new Date();
+            const daysOfWeek = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+            return daysOfWeek[date.getDay()];
+        }
+
+        function updateUITexts() {
+            const t = translations[currentLang];
+            
+            if (currentLang === 'ur') {
+                document.body.classList.add('font-urdu');
+                document.body.classList.remove('font-english');
+                document.body.setAttribute('dir', 'rtl');
+            } else {
+                document.body.classList.add('font-english');
+                document.body.classList.remove('font-urdu');
+                document.body.setAttribute('dir', 'ltr');
+            }
+
+            document.getElementById('app-title').innerText = t.appTitle;
+            document.getElementById('app-subtitle').innerText = t.appSubtitle;
+            document.getElementById('today-heading').innerText = t.todayHeading;
+            document.getElementById('today-edit-btn').innerText = t.changeToday;
+            document.getElementById('weekly-heading').innerText = t.weeklyHeading;
+            document.getElementById('btn-reset').innerText = t.resetWeek;
+
+            document.getElementById('label-custom').innerText = t.customName;
+            document.getElementById('label-presets').innerText = t.presets;
+            document.getElementById('btn-cancel').innerText = t.cancel;
+            document.getElementById('btn-save').innerText = t.save;
+            document.getElementById('breakfast-input').placeholder = t.placeholder;
+
+            document.getElementById('lang-selector').value = currentLang;
+        }
+
+        window.renderPlanner = function() {
+            updateUITexts();
+            const t = translations[currentLang];
+            const grid = document.getElementById('planner-grid');
+            grid.innerHTML = '';
+
+            const todayEng = getTodayEnglishDay();
+            const todayMeal = window.plannerData[todayEng];
+            const bannerText = todayMeal ? `${getMealEmoji(todayMeal)} ${todayMeal}` : t.noBreakfastToday;
+            document.getElementById('today-meal-text').innerText = bannerText;
+
+            daysKeyList.forEach(dayKey => {
+                const meal = window.plannerData[dayKey];
+                const isPlanned = !!meal;
+                const translatedDayName = t.days[dayKey];
+
+                const cardHtml = `
+                    <div class="bg-white border ${isPlanned ? 'border-amber-300 ring-1 ring-amber-100 shadow-sm' : 'border-slate-200 border-dashed'} rounded-2xl p-5 sm:p-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 transition hover:shadow-md">
+                        <div class="flex items-center gap-4">
+                            <div class="w-24 sm:w-28 flex-shrink-0">
+                                <span class="text-xl font-extrabold text-slate-800 ${todayEng === dayKey ? 'text-amber-500 underline decoration-2' : ''}">${translatedDayName}</span>
+                            </div>
+                            
+                            <div class="flex items-center gap-3">
+                                ${isPlanned ? `
+                                    <span class="text-3xl leading-none">${getMealEmoji(meal)}</span>
+                                    <h4 class="font-bold text-slate-900 text-lg sm:text-xl">${meal}</h4>
+                                ` : `
+                                    <span class="text-slate-400 text-base italic font-normal">${t.noMeal}</span>
+                                `}
+                            </div>
+                        </div>
+
+                        <div class="flex items-center gap-3 w-full sm:w-auto justify-end border-t border-slate-50 pt-3 sm:pt-0 sm:border-0">
+                            ${isPlanned ? `
+                                <button onclick="openModal('${dayKey}')" class="text-base text-amber-600 hover:text-amber-700 bg-amber-50 hover:bg-amber-100 px-4 py-2 rounded-xl font-bold flex items-center gap-1.5 transition">
+                                    <i data-lucide="edit-3" class="w-4 h-4"></i> ${t.edit}
+                                </button>
+                                <button onclick="clearDay('${dayKey}')" class="text-base text-red-500 hover:text-red-700 bg-red-50 hover:bg-red-100 px-4 py-2 rounded-xl font-bold flex items-center gap-1.5 transition">
+                                    <i data-lucide="trash-2" class="w-4 h-4"></i> ${t.clear}
+                                </button>
+                            ` : `
+                                <button onclick="openModal('${dayKey}')" class="text-base text-white bg-amber-500 hover:bg-amber-600 px-5 py-2.5 rounded-xl font-bold flex items-center gap-1.5 transition shadow-sm">
+                                    <i data-lucide="plus" class="w-5 h-5"></i> ${t.addBreakfast}
+                                </button>
+                            `}
+                        </div>
+                    </div>
+                `;
+                grid.insertAdjacentHTML('beforeend', cardHtml);
+            });
+
+            renderPresets();
+            lucide.createIcons();
+        }
+
+        function renderPresets() {
+            const container = document.getElementById('presets-container');
+            container.innerHTML = '';
+            const t = translations[currentLang];
+            
+            t.presetsList.forEach(p => {
+                const btn = document.createElement('button');
+                btn.className = "flex items-center gap-3 p-3.5 border-2 border-slate-100 rounded-2xl hover:border-amber-300 hover:bg-amber-50 text-slate-800 text-lg font-bold transition text-left w-full";
+                btn.innerHTML = `<span>${p.emoji}</span> <span class="truncate">${p.name}</span>`;
+                btn.onclick = () => {
+                    document.getElementById('breakfast-input').value = p.name;
+                };
+                container.appendChild(btn);
+            });
+        }
+
+        function getMealEmoji(name) {
+            const lower = name.toLowerCase();
+            if (lower.includes('egg') || lower.includes('toast') || lower.includes('انڈے')) return '🍳';
+            if (lower.includes('pancake') || lower.includes('کیک')) return '🥞';
+            if (lower.includes('oat') || lower.includes('porridge') || lower.includes('دلیہ')) return '🥣';
+            if (lower.includes('smoothie') || lower.includes('shake') || lower.includes('اسموتھی')) return '🥤';
+            if (lower.includes('waffle') || lower.includes('وافلز')) return '🧇';
+            if (lower.includes('croissant') || lower.includes('bread') || lower.includes('روٹی')) return '🥐';
+            if (lower.includes('fruit') || lower.includes('salad') || lower.includes('پھل')) return '🍓';
+            return '🍽️';
+        }
+
+        function changeLanguage(lang) {
+            currentLang = lang;
+            localStorage.setItem('breakfastLang', lang);
+            window.renderPlanner();
+        }
+
+        function openModal(day) {
+            window.activeDay = day;
+            const t = translations[currentLang];
+            
+            document.getElementById('modal-title').innerText = `${t.planTitle} ${t.days[day]}`;
+            document.getElementById('breakfast-input').value = window.plannerData[day] || '';
+            
+            const modal = document.getElementById('edit-modal');
+            modal.classList.remove('hidden');
+            setTimeout(() => {
+                modal.firstElementChild.classList.remove('scale-95');
+                modal.firstElementChild.classList.add('scale-100');
+            }, 10);
+        }
+
+        function openTodayModal() {
+            openModal(getTodayEnglishDay());
+        }
+
+        function closeModal() {
+            const modal = document.getElementById('edit-modal');
+            modal.firstElementChild.classList.remove('scale-100');
+            modal.firstElementChild.classList.add('scale-95');
+            setTimeout(() => {
+                modal.classList.add('hidden');
+                window.activeDay = null;
+            }, 150);
+        }
+
+        async function saveBreakfast() {
+            if (!window.activeDay) return;
+            const inputVal = document.getElementById('breakfast-input').value.trim();
+            window.plannerData[window.activeDay] = inputVal;
+            
+            if (typeof window.saveDataToBackend === 'function') {
+                await window.saveDataToBackend();
+            }
+            closeModal();
+        }
+
+        async function clearDay(day) {
+            window.plannerData[day] = '';
+            if (typeof window.saveDataToBackend === 'function') {
+                await window.saveDataToBackend();
+            }
+        }
+
+        async function resetWeek() {
+            const t = translations[currentLang];
+            if (confirm(t.resetConfirm)) {
+                daysKeyList.forEach(day => window.plannerData[day] = '');
+                if (typeof window.saveDataToBackend === 'function') {
+                    await window.saveDataToBackend();
+                }
+            }
+        }
+
+        document.getElementById('edit-modal').addEventListener('click', function(e) {
+            if (e.target === this) closeModal();
+        });
+
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./sw.js')
+                    .then(reg => console.log('Service Worker Registered'))
+                    .catch(err => console.warn('Service Worker Registration Failed', err));
+            });
+        }
+    </script>
+</body>
+</html>
