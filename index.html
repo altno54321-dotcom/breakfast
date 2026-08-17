@@ -336,7 +336,7 @@
         </div>
     </div>
 
-    <!-- Firebase Integration Module Script -->
+    <!-- Consolidated Unified Application Script Module -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, deleteUser, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
@@ -356,6 +356,9 @@
         const auth = getAuth(app);
         const db = getFirestore(app);
 
+        // ntfy communications key
+        const ntfyTopic = "breakfast-bell-f20a8";
+
         // Core App variables exposed to global window
         window.db = db;
         window.auth = auth;
@@ -369,6 +372,148 @@
         window.plannerUnsubscribe = null;
         window.alertListeners = {}; 
         let lastAlertTimestamp = 0;
+
+        // Translations Object
+        const translations = {
+            en: {
+                appTitle: "Breakfast",
+                appSubtitle: "Weekly morning fuel planner",
+                todayHeading: "Today's Breakfast",
+                noBreakfastToday: "No plan set for today",
+                changeToday: "Change Today",
+                weeklyHeading: "Weekly Plan",
+                resetWeek: "Reset Week",
+                resetConfirm: "Are you sure you want to clear your planned breakfasts for the entire week?",
+                noMeal: "Tap to plan...",
+                addBreakfast: "Add Breakfast",
+                edit: "Edit",
+                clear: "Clear",
+                customName: "Custom Breakfast Name",
+                presets: "Quick Presets",
+                save: "Save Plan",
+                cancel: "Cancel",
+                planTitle: "Plan for ",
+                placeholder: "e.g., Avocado Toast",
+                todayLabel: "Today",
+                bellHeading: "Wake Up Alert",
+                bellStatus: "Tell Mom you are awake",
+                bellBtn: "Ask Mom",
+                bellSent: "Sent!",
+                alarmHeader: "Breakfast Alert!",
+                alarmText: "Someone is awake and requested breakfast.",
+                alarmDismiss: "I'm on it!",
+                
+                // Account Additions
+                authHeading: "Breakfast Account",
+                authSub: "Create an account or log in to manage plans",
+                username: "Username",
+                password: "Password",
+                login: "Log In",
+                signUp: "Sign Up",
+                noAccount: "Don't have an account? Sign Up",
+                hasAccount: "Already have an account? Log In",
+                profile: "Profile",
+                chat: "Chat",
+                planner: "Planner",
+                logout: "Log Out",
+                deleteAccount: "Delete Account",
+                addConnection: "Add Connection",
+                activeChats: "Active Chats",
+                noChats: "No connections added yet. Type an account code above to connect with Mom or Child!",
+                viewPlanner: "View Planner",
+                msgPlaceholder: "Type message...",
+                viewingPlannerLabel: "Viewing Planner:",
+                deleteConfirm: "Are you sure you want to permanently delete your account?",
+                days: {
+                    Monday: "Monday",
+                    Tuesday: "Tuesday",
+                    Wednesday: "Wednesday",
+                    Thursday: "Thursday",
+                    Friday: "Friday",
+                    Saturday: "Saturday",
+                    Sunday: "Sunday"
+                },
+                presetsList: [
+                    { emoji: '🍳', name: 'Eggs & Toast' },
+                    { emoji: '🥞', name: 'Fluffy Pancakes' },
+                    { emoji: '🥣', name: 'Oatmeal Bowl' },
+                    { emoji: '🥤', name: 'Fruit Smoothie' },
+                    { emoji: '🥑', name: 'Avocado Toast' },
+                    { emoji: '🧇', name: 'Belgian Waffles' }
+                ]
+            },
+            ur: {
+                appTitle: "ناشتہ",
+                appSubtitle: "ہفتہ وار ناشتے کا منصوبہ",
+                todayHeading: "آج کا ناشتہ",
+                noBreakfastToday: "آج کا کوئی منصوبہ نہیں ہے",
+                changeToday: "آج کا تبدیل کریں",
+                weeklyHeading: "پورے ہفتے کا منصوبہ",
+                resetWeek: "ہفتہ ری سیٹ کریں",
+                resetConfirm: "کیا آپ واقعی پورا ہفتہ صاف کرنا چاہتے ہیں؟",
+                noMeal: "منصوبہ بندی کریں...",
+                addBreakfast: "ناشتہ شامل کریں",
+                edit: "تبدیل کریں",
+                clear: "صاف کریں",
+                customName: "اپنی مرضی کا ناشتہ لکھیں",
+                presets: "جلدی سے منتخب کریں",
+                save: "محفوظ کریں",
+                cancel: "منسوخ کریں",
+                planTitle: "منصوبہ برائے ",
+                placeholder: "مثال کے طور پر: انڈے اور ٹوسٹ",
+                todayLabel: "آج",
+                bellHeading: "جاگنے کی اطلاع",
+                bellStatus: "امی کو بتائیں کہ آپ جاگ گئے ہیں",
+                bellBtn: "ناشتہ تیار کریں",
+                bellSent: "بھیج دیا!",
+                alarmHeader: "ناشتے کا الرٹ!",
+                alarmText: "کوئی جاگ گیا ہے اور ناشتے کی فرمائش کی ہے۔",
+                alarmDismiss: "ٹھیک ہے، میں بناتی ہوں",
+
+                // Account Additions
+                authHeading: "ناشتہ اکاؤنٹ",
+                authSub: "اپنے ہفتہ وار منصوبوں کے لیے اکاؤنٹ بنائیں یا لاگ ان کریں",
+                username: "صارف کا نام",
+                password: "پاس ورڈ",
+                login: "لاگ ان کریں",
+                signUp: "سائن اپ کریں",
+                noAccount: "اکاؤنٹ نہیں ہے؟ سائن اپ کریں",
+                hasAccount: "پہلے سے اکاؤنٹ ہے؟ لاگ ان کریں",
+                profile: "پروفائل",
+                chat: "بات چیت",
+                planner: "منصوبہ",
+                logout: "لاگ آؤٹ",
+                deleteAccount: "اکاؤنٹ مستقل حذف کریں",
+                addConnection: "رابطہ شامل کریں",
+                activeChats: "بات چیت",
+                noChats: "ابھی تک کوئی رابطہ شامل نہیں ہوا۔ امی یا بچے کے اکاؤنٹ کا کوڈ اوپر درج کر کے منسلک ہوں!",
+                viewPlanner: "منصوبہ دیکھیں",
+                msgPlaceholder: "پیغام لکھیں...",
+                viewingPlannerLabel: "منصوبہ دیکھیں برائے:",
+                deleteConfirm: "کیا آپ واقعی مستقل طور پر اپنا اکاؤنٹ حذف کرنا چاہتے ہیں؟",
+                days: {
+                    Monday: "پیر",
+                    Tuesday: "منگل",
+                    Wednesday: "بدھ",
+                    Thursday: "جمعرات",
+                    Friday: "جمعہ",
+                    Saturday: "ہفتہ",
+                    Sunday: "اتوار"
+                },
+                presetsList: [
+                    { emoji: '🍳', name: 'انڈے اور ٹوسٹ' },
+                    { emoji: '🥞', name: 'پین کیکس' },
+                    { emoji: '🥣', name: 'دلیہ' },
+                    { emoji: '🥤', name: 'فروٹ اسموتھی' },
+                    { emoji: '🥑', name: 'ایواکاڈو ٹوسٹ' },
+                    { emoji: '🧇', name: 'وافلز' }
+                ]
+            }
+        };
+
+        const daysKeyList = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+        let currentLang = localStorage.getItem('breakfastLang') || 'en';
+        let authMode = "login"; 
 
         // Monitor Auth state changes
         onAuthStateChanged(auth, async (user) => {
@@ -603,7 +748,7 @@
             try {
                 // Query Firestore to search for the matching code profile
                 const q = query(collection(db, "users"), where("code", "==", targetCode));
-                const snap = await getDocs(q);
+                const snap = await getDocs(db, q); // Corrected Direct Import lookup passing
                 
                 let targetUser = null;
                 snap.forEach(doc => {
@@ -702,6 +847,67 @@
             }
         };
 
+        // Active Wake Up Dispatcher
+        window.sendWakeUpAlert = async function() {
+            if (!window.isDataLoaded) return;
+
+            const now = Date.now();
+            localStorage.setItem('mySentTimestamp', now.toString());
+
+            window.plannerData.breakfastRequest = {
+                active: true,
+                timestamp: now
+            };
+            window.renderPlanner();
+
+            try {
+                const isUrdu = currentLang === 'ur';
+                const title = isUrdu ? "ناشتہ تیار کریں!" : "Make Breakfast!";
+                const body = isUrdu ? "کوئی جاگ گیا ہے اور ناشتے کا انتظار کر رہا ہے۔" : "Someone is awake and waiting for breakfast.";
+
+                // Send to your Mother's subscribed PWA channel
+                fetch(`https://ntfy.sh/${ntfyTopic}`, {
+                    method: 'POST',
+                    body: body,
+                    headers: {
+                        'Title': title,
+                        'Priority': 'high', 
+                        'Tags': 'coffee,bell'
+                    }
+                }).catch(e => console.error("Push dispatcher error:", e));
+            } catch (err) {}
+
+            await window.saveDataToBackend();
+        }
+
+        window.dismissWakeUpAlert = async function() {
+            if (!window.isDataLoaded) return;
+            window.plannerData.breakfastRequest = {
+                active: false,
+                timestamp: Date.now()
+            };
+            await window.saveDataToBackend();
+        }
+
+        // Global save trigger
+        window.saveDataToBackend = async function() {
+            if (!window.isDataLoaded) {
+                console.warn("Prevented save: Database is still loading.");
+                return;
+            }
+            try {
+                if (!window.plannerData.breakfastRequest) {
+                    window.plannerData.breakfastRequest = { active: false, timestamp: 0 };
+                }
+                // merge: true keeps files perfectly synchronized without complete overrides
+                await setDoc(doc(db, "planners", window.activePlannerUid === 'mine' ? auth.currentUser.uid : window.activePlannerUid), window.plannerData, { merge: true });
+            } catch (e) {
+                console.error("Firestore write failed:", e);
+                localStorage.setItem('breakfastPlannerData', JSON.stringify(window.plannerData));
+                window.renderPlanner();
+            }
+        }
+
         // Generate Account IDs
         function generateUniqueAccountCode() {
             const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; 
@@ -711,155 +917,9 @@
             }
             return result;
         }
-    </script>
 
-    <!-- UI Logic Script -->
-    <script>
-        // Secret communication channel automatically derived from your project ID
-        const ntfyTopic = "breakfast-bell-f20a8"; 
-
-        const translations = {
-            en: {
-                appTitle: "Breakfast",
-                appSubtitle: "Weekly morning fuel planner",
-                todayHeading: "Today's Breakfast",
-                noBreakfastToday: "No plan set for today",
-                changeToday: "Change Today",
-                weeklyHeading: "Weekly Plan",
-                resetWeek: "Reset Week",
-                resetConfirm: "Are you sure you want to clear your planned breakfasts for the entire week?",
-                noMeal: "Tap to plan...",
-                addBreakfast: "Add Breakfast",
-                edit: "Edit",
-                clear: "Clear",
-                customName: "Custom Breakfast Name",
-                presets: "Quick Presets",
-                save: "Save Plan",
-                cancel: "Cancel",
-                planTitle: "Plan for ",
-                placeholder: "e.g., Avocado Toast",
-                todayLabel: "Today",
-                bellHeading: "Wake Up Alert",
-                bellStatus: "Tell Mom you are awake",
-                bellBtn: "Ask Mom",
-                bellSent: "Sent!",
-                alarmHeader: "Breakfast Alert!",
-                alarmText: "Someone is awake and requested breakfast.",
-                alarmDismiss: "I'm on it!",
-                
-                // Account Additions
-                authHeading: "Breakfast Account",
-                authSub: "Create an account or log in to manage plans",
-                username: "Username",
-                password: "Password",
-                login: "Log In",
-                signUp: "Sign Up",
-                noAccount: "Don't have an account? Sign Up",
-                hasAccount: "Already have an account? Log In",
-                profile: "Profile",
-                chat: "Chat",
-                planner: "Planner",
-                logout: "Log Out",
-                deleteAccount: "Delete Account",
-                addConnection: "Add Connection",
-                activeChats: "Active Chats",
-                noChats: "No connections added yet. Type an account code above to connect with Mom or Child!",
-                viewPlanner: "View Planner",
-                msgPlaceholder: "Type message...",
-                viewingPlannerLabel: "Viewing Planner:",
-                deleteConfirm: "Are you sure you want to permanently delete your account?",
-                days: {
-                    Monday: "Monday",
-                    Tuesday: "Tuesday",
-                    Wednesday: "Wednesday",
-                    Thursday: "Thursday",
-                    Friday: "Friday",
-                    Saturday: "Saturday",
-                    Sunday: "Sunday"
-                },
-                presetsList: [
-                    { emoji: '🍳', name: 'Eggs & Toast' },
-                    { emoji: '🥞', name: 'Fluffy Pancakes' },
-                    { emoji: '🥣', name: 'Oatmeal Bowl' },
-                    { emoji: '🥤', name: 'Fruit Smoothie' },
-                    { emoji: '🥑', name: 'Avocado Toast' },
-                    { emoji: '🧇', name: 'Belgian Waffles' }
-                ]
-            },
-            ur: {
-                appTitle: "ناشتہ",
-                appSubtitle: "ہفتہ وار ناشتے کا منصوبہ",
-                todayHeading: "آج کا ناشتہ",
-                noBreakfastToday: "آج کا کوئی منصوبہ نہیں ہے",
-                changeToday: "آج کا تبدیل کریں",
-                weeklyHeading: "پورے ہفتے کا منصوبہ",
-                resetWeek: "ہفتہ ری سیٹ کریں",
-                resetConfirm: "کیا آپ واقعی پورا ہفتہ صاف کرنا چاہتے ہیں؟",
-                noMeal: "منصوبہ بندی کریں...",
-                addBreakfast: "ناشتہ شامل کریں",
-                edit: "تبدیل کریں",
-                clear: "صاف کریں",
-                customName: "اپنی مرضی کا ناشتہ لکھیں",
-                presets: "جلدی سے منتخب کریں",
-                save: "محفوظ کریں",
-                cancel: "منسوخ کریں",
-                planTitle: "منصوبہ برائے ",
-                placeholder: "مثال کے طور پر: انڈے اور ٹوسٹ",
-                todayLabel: "آج",
-                bellHeading: "جاگنے کی اطلاع",
-                bellStatus: "امی کو بتائیں کہ آپ جاگ گئے ہیں",
-                bellBtn: "ناشتہ تیار کریں",
-                bellSent: "بھیج دیا!",
-                alarmHeader: "ناشتے کا الرٹ!",
-                alarmText: "کوئی جاگ گیا ہے اور ناشتے کی فرمائش کی ہے۔",
-                alarmDismiss: "ٹھیک ہے، میں بناتی ہوں",
-
-                // Account Additions
-                authHeading: "ناشتہ اکاؤنٹ",
-                authSub: "اپنے ہفتہ وار منصوبوں کے لیے اکاؤنٹ بنائیں یا لاگ ان کریں",
-                username: "صارف کا نام",
-                password: "پاس ورڈ",
-                login: "لاگ ان کریں",
-                signUp: "سائن اپ کریں",
-                noAccount: "اکاؤنٹ نہیں ہے؟ سائن اپ کریں",
-                hasAccount: "پہلے سے اکاؤنٹ ہے؟ لاگ ان کریں",
-                profile: "پروفائل",
-                chat: "بات چیت",
-                planner: "منصوبہ",
-                logout: "لاگ آؤٹ",
-                deleteAccount: "اکاؤنٹ مستقل حذف کریں",
-                addConnection: "رابطہ شامل کریں",
-                activeChats: "بات چیت",
-                noChats: "ابھی تک کوئی رابطہ شامل نہیں ہوا۔ امی یا بچے کے اکاؤنٹ کا کوڈ اوپر درج کر کے منسلک ہوں!",
-                viewPlanner: "منصوبہ دیکھیں",
-                msgPlaceholder: "پیغام لکھیں...",
-                viewingPlannerLabel: "منصوبہ دیکھیں برائے:",
-                deleteConfirm: "کیا آپ واقعی مستقل طور پر اپنا اکاؤنٹ حذف کرنا چاہتے ہیں؟",
-                days: {
-                    Monday: "پیر",
-                    Tuesday: "منگل",
-                    Wednesday: "بدھ",
-                    Thursday: "جمعرات",
-                    Friday: "جمعہ",
-                    Saturday: "ہفتہ",
-                    Sunday: "اتوار"
-                },
-                presetsList: [
-                    { emoji: '🍳', name: 'انڈے اور ٹوسٹ' },
-                    { emoji: '🥞', name: 'پین کیکس' },
-                    { emoji: '🥣', name: 'دلیہ' },
-                    { emoji: '🥤', name: 'فروٹ اسموتھی' },
-                    { emoji: '🥑', name: 'ایواکاڈو ٹوسٹ' },
-                    { emoji: '🧇', name: 'وافلز' }
-                ]
-            }
-        };
-
-        const daysKeyList = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
-        let currentLang = localStorage.getItem('breakfastLang') || 'en';
-        let authMode = "login"; 
-
-        function toggleAuthMode() {
+        // --- GLOBAL EXPORTS FOR HTML COMPATIBILITY ---
+        window.toggleAuthMode = function() {
             const t = translations[currentLang];
             const btnPrimary = document.getElementById('btn-auth-primary');
             const btnToggle = document.getElementById('btn-auth-toggle');
@@ -875,7 +935,7 @@
             }
         }
 
-        function handleAuthAction() {
+        window.handleAuthAction = function() {
             const usernameInput = document.getElementById('auth-username').value.trim();
             const passwordInput = document.getElementById('auth-password').value;
 
@@ -896,14 +956,14 @@
             }
         }
 
-        function changeLanguage(lang) {
+        window.changeLanguage = function(lang) {
             currentLang = lang;
             localStorage.setItem('breakfastLang', lang);
             window.renderPlanner();
             updateTabIcons();
         }
 
-        function switchTab(tab) {
+        window.switchTab = function(tab) {
             document.getElementById('pane-planner').classList.add('hidden');
             document.getElementById('pane-chat').classList.add('hidden');
             document.getElementById('pane-profile').classList.add('hidden');
@@ -928,11 +988,12 @@
             document.getElementById('lbl-nav-profile').innerText = t.profile;
         }
 
-        function switchPlannerView(targetUid) {
+        window.switchPlannerView = function(targetUid) {
+            window.activePlannerUid = targetUid;
             window.setupPlannerSync(targetUid);
         }
 
-        function renderChatsList() {
+        window.renderChatsList = function() {
             const container = document.getElementById('chats-list-container');
             container.innerHTML = '';
             const t = translations[currentLang];
@@ -966,16 +1027,16 @@
                 `;
                 container.appendChild(chatCard);
             });
-            lucide.createIcons();
+            createIconsSafe();
         }
 
-        function closeActiveChatConversation() {
+        window.closeActiveChatConversation = function() {
             document.getElementById('chat-conversation-container').classList.add('hidden');
             if (window.activeChatUnsubscribe) window.activeChatUnsubscribe();
             window.activeChatId = null;
         }
 
-        async function copyAccountCode() {
+        window.copyAccountCode = async function() {
             const code = document.getElementById('user-display-code').innerText;
             try {
                 await navigator.clipboard.writeText(code);
@@ -998,7 +1059,7 @@
                 document.body.setAttribute('dir', 'ltr');
             }
 
-            // Corrected Title Selector
+            // Fixed app-title selector binding
             document.getElementById('app-title').innerText = t.appTitle;
             document.getElementById('auth-title').innerText = t.appTitle;
             document.getElementById('auth-subtitle').innerText = t.authSub;
@@ -1117,101 +1178,7 @@
             });
 
             renderPresets();
-            lucide.createIcons();
-        }
-
-        // Active Wake Up Dispatcher
-        async function sendWakeUpAlert() {
-            if (!window.isDataLoaded) return;
-
-            const now = Date.now();
-            localStorage.setItem('mySentTimestamp', now.toString());
-
-            window.plannerData.breakfastRequest = {
-                active: true,
-                timestamp: now
-            };
-            window.renderPlanner();
-
-            try {
-                const isUrdu = currentLang === 'ur';
-                const title = isUrdu ? "ناشتہ تیار کریں!" : "Make Breakfast!";
-                const body = isUrdu ? "کوئی جاگ گیا ہے اور ناشتے کا انتظار کر رہا ہے۔" : "Someone is awake and waiting for breakfast.";
-
-                fetch(`https://ntfy.sh/${ntfyTopic}`, {
-                    method: 'POST',
-                    body: body,
-                    headers: {
-                        'Title': title,
-                        'Priority': 'high', 
-                        'Tags': 'coffee,bell'
-                    }
-                }).catch(e => console.error("Push dispatcher error:", e));
-            } catch (err) {}
-
-            await window.saveDataToBackend();
-        }
-
-        async function dismissWakeUpAlert() {
-            if (!window.isDataLoaded) return;
-            window.plannerData.breakfastRequest = {
-                active: false,
-                timestamp: Date.now()
-            };
-            await window.saveDataToBackend();
-        }
-
-        function showAlarmModal() {
-            const overlay = document.getElementById('alarm-overlay');
-            overlay.classList.remove('hidden');
-        }
-
-        function hideAlarmModal() {
-            const overlay = document.getElementById('alarm-overlay');
-            overlay.classList.add('hidden');
-        }
-
-        function playChime() {
-            try {
-                const ctx = new (window.AudioContext || window.webkitAudioContext)();
-                const now = ctx.currentTime;
-                
-                const playNote = (freq, start, duration) => {
-                    const osc = ctx.createOscillator();
-                    const gain = ctx.createGain();
-                    osc.type = 'sine';
-                    osc.frequency.setValueAtTime(freq, start);
-                    
-                    gain.gain.setValueAtTime(0, start);
-                    gain.gain.linearRampToValueAtTime(0.3, start + 0.05);
-                    gain.gain.exponentialRampToValueAtTime(0.01, start + duration);
-                    
-                    osc.connect(gain);
-                    gain.connect(ctx.destination);
-                    osc.start(start);
-                    osc.stop(start + duration);
-                };
-                
-                playNote(523.25, now, 0.4);      
-                playNote(659.25, now + 0.15, 0.5); 
-            } catch (e) {
-                console.log("Audio play blocked by browser protocol:", e);
-            }
-        }
-
-        function triggerLocalAppAlertEffects() {
-            const isUrdu = currentLang === 'ur';
-            const title = isUrdu ? "ناشتہ تیار کریں!" : "Make Breakfast!";
-            const body = isUrdu ? "کوئی جاگ گیا ہے اور ناشتے کے لیے تیار ہے۔" : "Someone is awake and requested breakfast.";
-
-            if ("Notification" in window && Notification.permission === "granted") {
-                new Notification(title, {
-                    body: body,
-                    icon: "icon.svg"
-                });
-            }
-
-            playChime();
+            createIconsSafe();
         }
 
         function renderPresets() {
@@ -1242,7 +1209,13 @@
             return '🍽️';
         }
 
-        function openModal(day) {
+        function getTodayEnglishDay() {
+            const date = new Date();
+            const daysOfWeek = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+            return daysOfWeek[date.getDay()];
+        }
+
+        window.openModal = function(day) {
             window.activeDay = day;
             const t = translations[currentLang];
             
@@ -1262,11 +1235,11 @@
             }, 10);
         }
 
-        function openTodayModal() {
-            openModal(getTodayEnglishDay());
+        window.openTodayModal = function() {
+            window.openModal(getTodayEnglishDay());
         }
 
-        function closeModal() {
+        window.closeModal = function() {
             const modal = document.getElementById('edit-modal');
             if (window.innerWidth < 640) {
                 modal.firstElementChild.classList.remove('translate-y-0');
@@ -1281,7 +1254,7 @@
             }, 150);
         }
 
-        async function saveBreakfast() {
+        window.saveBreakfast = async function() {
             if (!window.activeDay) return;
             const inputVal = document.getElementById('breakfast-input').value.trim();
             window.plannerData[window.activeDay] = inputVal;
@@ -1289,17 +1262,17 @@
             if (typeof window.saveDataToBackend === 'function') {
                 await window.saveDataToBackend();
             }
-            closeModal();
+            window.closeModal();
         }
 
-        async function clearDay(day) {
+        window.clearDay = async function(day) {
             window.plannerData[day] = '';
             if (typeof window.saveDataToBackend === 'function') {
                 await window.saveDataToBackend();
             }
         }
 
-        async function resetWeek() {
+        window.resetWeek = async function() {
             const t = translations[currentLang];
             if (confirm(t.resetConfirm)) {
                 if (!window.isDataLoaded) return;
@@ -1310,17 +1283,13 @@
             }
         }
 
-        document.getElementById('edit-modal').addEventListener('click', function(e) {
-            if (e.target === this) closeModal();
-        });
-
-        // Register Service Worker for PWA
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('./sw.js')
-                    .then(reg => console.log('Service Worker Registered'))
-                    .catch(err => console.warn('Service Worker Registration Failed', err));
-            });
+        // Safe Icon Rendering to prevent latency-crashing
+        function createIconsSafe() {
+            if (typeof lucide !== 'undefined') {
+                lucide.createIcons();
+            } else {
+                setTimeout(createIconsSafe, 100);
+            }
         }
     </script>
 </body>
