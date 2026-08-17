@@ -40,74 +40,231 @@
 </head>
 <body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col font-english selection:bg-amber-100 selection:text-amber-900 transition-all duration-200">
 
-    <!-- Compact Mobile Header -->
-    <header class="bg-white border-b border-slate-100 py-3.5 px-4 sticky top-0 z-30 shadow-sm backdrop-blur-md bg-white/95">
-        <div class="max-w-md mx-auto flex justify-between items-center">
-            <div class="flex items-center gap-2.5">
-                <div class="p-2 bg-amber-500 text-white rounded-xl shadow-md shadow-amber-500/10">
-                    <i data-lucide="coffee" class="w-5.5 h-5.5"></i>
+    <!-- Auth View (Signup / Login) -->
+    <div id="auth-view" class="flex-grow flex items-center justify-center p-4 min-h-screen bg-slate-50">
+        <div class="bg-white rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-xl border border-slate-100 space-y-6">
+            <div class="text-center space-y-2">
+                <div class="p-3 bg-amber-500 text-white rounded-2xl w-14 h-14 mx-auto flex items-center justify-center shadow-lg shadow-amber-500/20">
+                    <i data-lucide="coffee" class="w-8 h-8"></i>
                 </div>
-                <h1 id="app-title" class="text-2xl font-extrabold text-slate-900 tracking-tight">Breakfast</h1>
+                <h2 id="auth-title" class="text-3xl font-extrabold text-slate-900">Breakfast</h2>
+                <p id="auth-subtitle" class="text-slate-500 text-sm">Create an account or log in to manage weekly plans</p>
             </div>
-            
-            <div class="flex items-center gap-1.5">
-                <select id="lang-selector" onchange="changeLanguage(this.value)" class="bg-slate-100 text-slate-800 font-bold text-sm px-3 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-amber-500">
-                    <option value="en">EN</option>
-                    <option value="ur">اردو</option>
-                </select>
 
-                <button onclick="resetWeek()" class="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition" id="btn-reset-container" title="Reset Week">
-                    <i data-lucide="rotate-ccw" class="w-5.5 h-5.5"></i>
+            <!-- Login / Signup Form -->
+            <div class="space-y-4">
+                <div>
+                    <label id="label-username" class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">Username</label>
+                    <input type="text" id="auth-username" placeholder="e.g. mom123" class="w-full px-4 py-3 bg-slate-50 border-2 border-slate-200 rounded-xl focus:ring-4 focus:ring-amber-500/10 focus:border-amber-500 outline-none transition text-base font-bold">
+                </div>
+                <div>
+                    <label id="label-password" class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">Password</label>
+                    <input type="password" id="auth-password" placeholder="••••••••" class="w-full px-4 py-3 bg-slate-50 border-2 border-slate-200 rounded-xl focus:ring-4 focus:ring-amber-500/10 focus:border-amber-500 outline-none transition text-base font-bold">
+                </div>
+                
+                <button id="btn-auth-primary" onclick="handleAuthAction()" class="w-full py-4 bg-amber-500 hover:bg-amber-600 text-white font-bold rounded-2xl text-lg transition shadow-lg shadow-amber-500/15">
+                    Log In
+                </button>
+                
+                <div class="text-center">
+                    <button id="btn-auth-toggle" onclick="toggleAuthMode()" class="text-sm font-bold text-amber-600 hover:text-amber-700">
+                        Don't have an account? Sign Up
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- App View Container (Hidden until logged in) -->
+    <div id="app-view" class="hidden flex-col min-h-screen">
+        <!-- Compact Mobile Header -->
+        <header class="bg-white border-b border-slate-100 py-3.5 px-4 sticky top-0 z-30 shadow-sm backdrop-blur-md bg-white/95">
+            <div class="max-w-md mx-auto flex justify-between items-center">
+                <div class="flex items-center gap-2.5">
+                    <div class="p-2 bg-amber-500 text-white rounded-xl shadow-md shadow-amber-500/10">
+                        <i data-lucide="coffee" class="w-5.5 h-5.5"></i>
+                    </div>
+                    <h1 class="text-2xl font-extrabold text-slate-900 tracking-tight">Breakfast</h1>
+                </div>
+                
+                <div class="flex items-center gap-1.5">
+                    <select id="lang-selector" onchange="changeLanguage(this.value)" class="bg-slate-100 text-slate-800 font-bold text-sm px-3 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-amber-500">
+                        <option value="en">EN</option>
+                        <option value="ur">اردو</option>
+                    </select>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Workspace Frame -->
+        <main class="flex-grow max-w-md w-full mx-auto p-4 space-y-4 pb-24">
+            
+            <!-- TAB 1: Planner Workspace -->
+            <section id="pane-planner" class="space-y-4">
+                <!-- Dropdown to select whose planner you are viewing (Enabled when connected to parent/child) -->
+                <div id="view-picker-container" class="hidden bg-white border border-slate-200 rounded-2xl p-3 shadow-sm flex items-center justify-between gap-3">
+                    <span id="label-viewing-planner" class="text-sm font-bold text-slate-400">Viewing Planner:</span>
+                    <select id="planner-view-selector" onchange="switchPlannerView(this.value)" class="bg-amber-50 text-amber-900 font-bold text-base px-3 py-2 rounded-xl border border-amber-200 focus:outline-none">
+                        <option value="mine">My Planner</option>
+                    </select>
+                </div>
+
+                <!-- Today's Breakfast Card -->
+                <section id="todays-banner" onclick="openTodayModal()" class="bg-amber-500 text-white rounded-2xl p-4 shadow-lg shadow-amber-500/10 flex items-center justify-between gap-3 cursor-pointer hover:bg-amber-600 transition active:scale-[0.98]">
+                    <div class="flex items-center gap-3.5 min-w-0">
+                        <div class="p-3 bg-white/20 rounded-xl text-2xl flex-shrink-0 leading-none">
+                            🍳
+                        </div>
+                        <div class="min-w-0">
+                            <h2 id="today-heading" class="text-xs font-bold uppercase tracking-wider text-amber-100">Today's Breakfast</h2>
+                            <p id="today-meal-text" class="text-lg font-extrabold mt-0.5 truncate">Loading...</p>
+                        </div>
+                    </div>
+                    <div class="p-1.5 bg-white/10 rounded-lg flex-shrink-0">
+                        <i data-lucide="chevron-right" class="w-5 h-5"></i>
+                    </div>
+                </section>
+
+                <!-- Wake Up Notification Widget -->
+                <section class="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm flex items-center justify-between gap-3">
+                    <div class="flex items-center gap-3.5 min-w-0">
+                        <div class="p-3 bg-rose-50 text-rose-500 rounded-xl flex-shrink-0">
+                            <i data-lucide="bell" id="bell-icon" class="w-6 h-6"></i>
+                        </div>
+                        <div class="min-w-0">
+                            <h2 id="bell-heading" class="text-xs font-bold uppercase tracking-wider text-slate-400">Wake Up Alert</h2>
+                            <p id="bell-status" class="text-sm font-bold text-slate-600 truncate">Tell Mom you are awake</p>
+                        </div>
+                    </div>
+                    <button id="btn-bell-send" onclick="sendWakeUpAlert()" class="bg-rose-500 hover:bg-rose-600 text-white font-bold text-base px-4 py-3 rounded-xl transition active:scale-95 shadow-md shadow-rose-500/10 flex-shrink-0">
+                        Ask Mom
+                    </button>
+                </section>
+
+                <!-- Compact Weekly List -->
+                <div class="space-y-2.5">
+                    <div class="flex justify-between items-center px-1">
+                        <h3 id="weekly-heading" class="text-lg font-extrabold text-slate-500 uppercase tracking-wider">Weekly Plan</h3>
+                        <button onclick="resetWeek()" id="btn-reset" class="text-sm font-bold text-slate-400 hover:text-red-500 flex items-center gap-1.5">
+                            <i data-lucide="rotate-ccw" class="w-4 h-4"></i> Reset
+                        </button>
+                    </div>
+                    <div id="planner-grid" class="space-y-2">
+                        <!-- Standard row items dynamically loaded here -->
+                    </div>
+                </div>
+            </section>
+
+            <!-- TAB 2: Chat Workspace -->
+            <section id="pane-chat" class="hidden space-y-4">
+                <!-- Add Connection Entry Widget -->
+                <div class="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm space-y-3">
+                    <h3 id="heading-add-connection" class="text-base font-extrabold text-slate-900">Add Connection</h3>
+                    <div class="flex gap-2">
+                        <input type="text" id="connection-code-input" placeholder="Enter code (e.g. BF-X59A3)" class="flex-grow px-4 py-3 bg-slate-50 border-2 border-slate-200 rounded-xl text-base font-bold outline-none focus:border-amber-500 transition">
+                        <button onclick="connectUserByCode()" id="btn-connect-submit" class="bg-amber-500 hover:bg-amber-600 text-white font-bold px-5 rounded-xl transition active:scale-95">Add</button>
+                    </div>
+                </div>
+
+                <!-- Active Chat List -->
+                <div class="space-y-2.5">
+                    <h3 id="heading-active-chats" class="text-lg font-extrabold text-slate-500 uppercase tracking-wider px-1">Active Chats</h3>
+                    <div id="chats-list-container" class="space-y-2">
+                        <!-- Connected chats load here -->
+                    </div>
+                </div>
+            </section>
+
+            <!-- TAB 3: Profile Workspace -->
+            <section id="pane-profile" class="hidden space-y-4">
+                <div class="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm space-y-6">
+                    <!-- User Info header -->
+                    <div class="flex items-center gap-4 border-b border-slate-100 pb-5">
+                        <div class="w-16 h-16 bg-amber-100 text-amber-700 rounded-2xl flex items-center justify-center text-3xl font-bold">
+                            👤
+                        </div>
+                        <div>
+                            <h2 id="profile-username-display" class="text-2xl font-extrabold text-slate-900">username</h2>
+                            <p id="profile-role-tag" class="text-sm text-slate-400">Breakfast Member</p>
+                        </div>
+                    </div>
+
+                    <!-- Unique Account ID Card -->
+                    <div class="bg-slate-50 border border-slate-200 rounded-2xl p-4 flex justify-between items-center gap-4">
+                        <div>
+                            <span id="label-acc-code" class="text-xs font-bold uppercase tracking-wider text-slate-400">Your Account Code</span>
+                            <div id="user-display-code" class="text-2xl font-black text-slate-800 tracking-wider mt-0.5">BF-XXXXX</div>
+                        </div>
+                        <button onclick="copyAccountCode()" class="p-3 bg-white border border-slate-200 hover:bg-slate-50 rounded-xl transition text-slate-500 active:scale-95" title="Copy Code">
+                            <i data-lucide="copy" class="w-5 h-5"></i>
+                        </button>
+                    </div>
+
+                    <!-- System Logout and delete operations -->
+                    <div class="space-y-2 pt-2">
+                        <button onclick="logOutUser()" id="btn-logout" class="w-full py-4 border-2 border-slate-200 hover:bg-slate-50 text-slate-700 font-bold rounded-2xl text-base transition">
+                            Log Out
+                        </button>
+                        <button onclick="deleteUserAccount()" id="btn-delete-account" class="w-full py-4 text-red-500 hover:bg-red-50 font-bold rounded-2xl text-base transition">
+                            Delete Account
+                        </button>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <!-- Dynamic Fullscreen Active Chatbox View -->
+        <div id="chat-conversation-container" class="hidden fixed inset-0 z-40 bg-slate-50 flex flex-col">
+            <!-- Chat Box Header -->
+            <header class="bg-white border-b border-slate-100 py-3.5 px-4 sticky top-0 z-30 shadow-sm flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                    <button onclick="closeActiveChatConversation()" class="p-2 hover:bg-slate-100 rounded-xl text-slate-500 transition">
+                        <i data-lucide="arrow-left" class="w-6 h-6"></i>
+                    </button>
+                    <div class="min-w-0">
+                        <h2 id="chat-header-name" class="text-xl font-extrabold text-slate-900 truncate">Username</h2>
+                        <span id="chat-header-status" class="text-xs text-amber-600 font-bold uppercase tracking-wider">Connected</span>
+                    </div>
+                </div>
+                <button onclick="viewChatTargetPlanner()" id="btn-chat-view-planner" class="bg-amber-50 text-amber-700 font-bold px-4 py-2 rounded-xl border border-amber-100 transition active:scale-95 text-sm">
+                    View Planner
+                </button>
+            </header>
+
+            <!-- Conversation messages panel -->
+            <div id="chat-messages-flow" class="flex-grow p-4 overflow-y-auto space-y-3">
+                <!-- Conversation threads load here -->
+            </div>
+
+            <!-- Conversation message entry tool -->
+            <div class="p-4 bg-white border-t border-slate-100 flex gap-3 items-center">
+                <input type="text" id="chat-entry-input" placeholder="Type message..." class="flex-grow px-4 py-3.5 bg-slate-50 border-2 border-slate-200 rounded-xl text-base font-bold outline-none focus:border-amber-500 transition">
+                <button onclick="sendActiveChatMessage()" class="p-3.5 bg-amber-500 hover:bg-amber-600 text-white rounded-xl transition active:scale-95 shadow-md shadow-amber-500/15">
+                    <i data-lucide="send" class="w-6 h-6"></i>
                 </button>
             </div>
         </div>
-    </header>
 
-    <!-- App Shell Frame -->
-    <main class="flex-grow max-w-md w-full mx-auto p-4 space-y-4">
-        
-        <!-- Today's Breakfast Compact Card -->
-        <section id="todays-banner" onclick="openTodayModal()" class="bg-amber-500 text-white rounded-2xl p-4 shadow-lg shadow-amber-500/10 flex items-center justify-between gap-3 cursor-pointer hover:bg-amber-600 transition active:scale-[0.98]">
-            <div class="flex items-center gap-3.5 min-w-0">
-                <div class="p-3 bg-white/20 rounded-xl text-2xl flex-shrink-0 leading-none">
-                    🍳
-                </div>
-                <div class="min-w-0">
-                    <h2 id="today-heading" class="text-xs font-bold uppercase tracking-wider text-amber-100">Today's Breakfast</h2>
-                    <p id="today-meal-text" class="text-lg font-extrabold mt-0.5 truncate">Loading...</p>
-                </div>
+        <!-- Sticky Bottom Tab bar Navigation panel -->
+        <nav class="fixed bottom-0 left-0 right-0 z-30 bg-white border-t border-slate-100 py-2.5 px-4 shadow-lg shadow-black/10">
+            <div class="max-w-md mx-auto flex justify-around items-center">
+                <button onclick="switchTab('planner')" id="nav-btn-planner" class="flex flex-col items-center gap-1 text-amber-500 font-extrabold transition">
+                    <i data-lucide="calendar" class="w-6 h-6"></i>
+                    <span id="lbl-nav-planner" class="text-xs">Planner</span>
+                </button>
+                <button onclick="switchTab('chat')" id="nav-btn-chat" class="flex flex-col items-center gap-1 text-slate-400 font-bold transition">
+                    <i data-lucide="message-square" class="w-6 h-6"></i>
+                    <span id="lbl-nav-chat" class="text-xs">Chat</span>
+                </button>
+                <button onclick="switchTab('profile')" id="nav-btn-profile" class="flex flex-col items-center gap-1 text-slate-400 font-bold transition">
+                    <i data-lucide="user" class="w-6 h-6"></i>
+                    <span id="lbl-nav-profile" class="text-xs">Profile</span>
+                </button>
             </div>
-            <div class="p-1.5 bg-white/10 rounded-lg flex-shrink-0">
-                <i data-lucide="chevron-right" class="w-5 h-5"></i>
-            </div>
-        </section>
+        </nav>
+    </div>
 
-        <!-- Wake Up Notification Widget -->
-        <section class="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm flex items-center justify-between gap-3">
-            <div class="flex items-center gap-3.5 min-w-0">
-                <div class="p-3 bg-rose-50 text-rose-500 rounded-xl flex-shrink-0">
-                    <i data-lucide="bell" id="bell-icon" class="w-6 h-6"></i>
-                </div>
-                <div class="min-w-0">
-                    <h2 id="bell-heading" class="text-xs font-bold uppercase tracking-wider text-slate-400">Wake Up Alert</h2>
-                    <p id="bell-status" class="text-sm font-bold text-slate-600 truncate">Tell Mom you are awake</p>
-                </div>
-            </div>
-            <button id="btn-bell-send" onclick="sendWakeUpAlert()" class="bg-rose-500 hover:bg-rose-600 text-white font-bold text-base px-4 py-3 rounded-xl transition active:scale-95 shadow-md shadow-rose-500/10 flex-shrink-0">
-                Ask Mom
-            </button>
-        </section>
-
-        <!-- Compact Weekly List -->
-        <div class="space-y-2.5">
-            <h3 id="weekly-heading" class="text-lg font-extrabold text-slate-500 uppercase tracking-wider px-1">Weekly Plan</h3>
-            <div id="planner-grid" class="space-y-2">
-                <!-- Standard row items dynamically loaded here -->
-            </div>
-        </div>
-    </main>
-
-    <!-- Slide-over / Compact Bottom Sheet Style Edit Modal -->
+    <!-- Edit Day Modal -->
     <div id="edit-modal" class="hidden fixed inset-0 z-40 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-slate-900/60 backdrop-blur-sm transition-opacity duration-200">
         <div class="bg-white rounded-t-3xl sm:rounded-3xl max-w-md w-full p-6 pb-8 sm:pb-6 shadow-2xl border-t sm:border border-slate-100 transform translate-y-full sm:translate-y-0 sm:scale-95 transition-all duration-200 max-h-[90vh] flex flex-col">
             <div class="flex justify-between items-start mb-5 flex-shrink-0">
@@ -122,13 +279,13 @@
 
             <div class="space-y-5 overflow-y-auto pr-1 flex-grow">
                 <div>
-                    <label id="label-custom" class="block text-sm font-bold uppercase tracking-wider text-slate-400 mb-1.5">Custom Breakfast Name</label>
+                    <label id="label-custom" class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5">Custom Breakfast Name</label>
                     <input type="text" id="breakfast-input" placeholder="e.g., Avocado Toast" 
                         class="w-full px-4 py-3.5 bg-slate-50 border-2 border-slate-200 rounded-xl focus:ring-4 focus:ring-amber-500/20 focus:border-amber-500 focus:bg-white outline-none transition duration-200 text-lg font-bold">
                 </div>
 
                 <div>
-                    <label id="label-presets" class="block text-sm font-bold uppercase tracking-wider text-slate-400 mb-2">Quick Presets</label>
+                    <label id="label-presets" class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Quick Presets</label>
                     <div class="grid grid-cols-2 gap-2" id="presets-container">
                         <!-- Filled dynamically -->
                     </div>
@@ -162,11 +319,13 @@
         </div>
     </div>
 
-    <!-- Firebase Integration -->
+    <!-- Firebase Integration Module Script -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, deleteUser, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+        import { getFirestore, doc, setDoc, getDoc, updateDoc, deleteDoc, onSnapshot, collection, addDoc, query, where, orderBy, arrayUnion } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
+        // Integrated user config
         const firebaseConfig = {
             apiKey: "AIzaSyAvvR2Jqox9gTouYUUq3B5vchVMsqf1rzc",
             authDomain: "breakfast-f20a8.firebaseapp.com",
@@ -176,88 +335,371 @@
             appId: "1:674369144145:web:c08d62b7fdd6a40d9d3f70"
         };
 
-        let db;
-        try {
-            const app = initializeApp(firebaseConfig);
-            db = getFirestore(app);
-            console.log("Firebase initialized successfully.");
-        } catch (err) {
-            console.error("Firebase initialization failed:", err);
-        }
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
 
-        window.plannerData = {
-            Monday: '', Tuesday: '', Wednesday: '', Thursday: '', Friday: '', Saturday: '', Sunday: '',
-            breakfastRequest: { active: false, timestamp: 0 }
-        };
-        window.activeDay = null;
-        window.isDataLoaded = false; // Safety lock to prevent blank writes on loading
+        // Core App variables exposed to global window
+        window.db = db;
+        window.auth = auth;
+        window.currentUserData = null;
+        window.activePlannerUid = 'mine'; // 'mine' or connected UID
+        window.plannerData = {};
+        window.isDataLoaded = false;
+        window.myConnections = []; // Loaded connection profiles
+        window.activeChatId = null;
+        window.activeChatUnsubscribe = null;
+        window.plannerUnsubscribe = null;
+        window.alertListeners = {}; // Track active listeners on connections' alarm parameters
         let lastAlertTimestamp = 0;
 
-        // Listen to Firestore changes in real-time
-        onSnapshot(doc(db, "planners", "weekly-plan"), (docSnap) => {
-            window.isDataLoaded = true; // Unlock writes
-
-            if (docSnap.exists()) {
-                window.plannerData = docSnap.data();
-            } else {
-                window.plannerData = { 
-                    Monday: '', Tuesday: '', Wednesday: '', Thursday: '', Friday: '', Saturday: '', Sunday: '',
-                    breakfastRequest: { active: false, timestamp: 0 }
-                };
-            }
-
-            // Sync alert state globally
-            const req = window.plannerData.breakfastRequest;
-            const mySentTimestamp = parseInt(localStorage.getItem('mySentTimestamp') || '0');
-
-            if (req && req.active) {
-                // If the alert was sent by THIS device, do not show the popup modal
-                if (req.timestamp === mySentTimestamp) {
-                    hideAlarmModal();
+        // Monitor Auth state changes
+        onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                // Fetch User profile
+                const userDoc = await getDoc(doc(db, "users", user.uid));
+                if (userDoc.exists()) {
+                    window.currentUserData = userDoc.data();
+                    document.getElementById('profile-username-display').innerText = window.currentUserData.username;
+                    document.getElementById('user-display-code').innerText = window.currentUserData.code;
+                    
+                    // Transition View to authenticated frame
+                    document.getElementById('auth-view').classList.add('hidden');
+                    document.getElementById('app-view').classList.remove('hidden');
+                    
+                    // Default to My Planner
+                    window.activePlannerUid = 'mine';
+                    setupPlannerSync(user.uid);
+                    loadConnectionProfiles();
+                    listenToAllConnectionsAlerts();
                 } else {
-                    showAlarmModal();
-                    if (req.timestamp !== lastAlertTimestamp) {
-                        lastAlertTimestamp = req.timestamp;
-                        triggerLocalAppAlertEffects();
-                    }
+                    await signOut(auth);
                 }
             } else {
-                hideAlarmModal();
+                // Back to login
+                window.currentUserData = null;
+                cleanupSessionListeners();
+                document.getElementById('app-view').classList.add('hidden');
+                document.getElementById('auth-view').classList.remove('hidden');
             }
-
-            window.renderPlanner();
-        }, (err) => {
-            console.error("Error reading from Firestore:", err);
-            window.plannerData = JSON.parse(localStorage.getItem('breakfastPlannerData')) || window.plannerData;
-            window.isDataLoaded = true; // Unlock even if Firestore fails
-            window.renderPlanner();
         });
 
-        // Global save trigger
-        window.saveDataToBackend = async function() {
-            if (!window.isDataLoaded) {
-                console.warn("Prevented save: Database is still loading.");
+        // Initialize dynamic planner synchronization
+        window.setupPlannerSync = function(targetUid) {
+            if (window.plannerUnsubscribe) window.plannerUnsubscribe();
+            window.isDataLoaded = false;
+
+            const finalUid = targetUid === 'mine' ? auth.currentUser.uid : targetUid;
+
+            window.plannerUnsubscribe = onSnapshot(doc(db, "planners", finalUid), (docSnap) => {
+                window.isDataLoaded = true;
+
+                if (docSnap.exists()) {
+                    window.plannerData = docSnap.data();
+                } else {
+                    window.plannerData = { 
+                        Monday: '', Tuesday: '', Wednesday: '', Thursday: '', Friday: '', Saturday: '', Sunday: '',
+                        breakfastRequest: { active: false, timestamp: 0 }
+                    };
+                }
+
+                // Handle system-level wake up alarm pop-ups on screen
+                const req = window.plannerData.breakfastRequest;
+                const mySentTimestamp = parseInt(localStorage.getItem('mySentTimestamp') || '0');
+
+                if (req && req.active) {
+                    if (req.timestamp === mySentTimestamp) {
+                        hideAlarmModal();
+                    } else {
+                        showAlarmModal();
+                        if (req.timestamp !== lastAlertTimestamp) {
+                            lastAlertTimestamp = req.timestamp;
+                            triggerLocalAppAlertEffects();
+                        }
+                    }
+                } else {
+                    hideAlarmModal();
+                }
+
+                window.renderPlanner();
+            }, (err) => {
+                console.error("Error reading from Firestore planner:", err);
+                window.isDataLoaded = true;
+                window.renderPlanner();
+            });
+        };
+
+        // Fetch connected profile details
+        async function loadConnectionProfiles() {
+            if (!auth.currentUser || !window.currentUserData) return;
+            const connectionsList = window.currentUserData.connections || [];
+            
+            const profiles = [];
+            const selector = document.getElementById('planner-view-selector');
+            
+            // Reset dropdown with only "My Planner"
+            selector.innerHTML = `<option value="mine">${currentLang === 'ur' ? 'میرا منصوبہ' : 'My Planner'}</option>`;
+
+            for (const uid of connectionsList) {
+                const docSnap = await getDoc(doc(db, "users", uid));
+                if (docSnap.exists()) {
+                    const data = docSnap.data();
+                    profiles.push({ uid, username: data.username, code: data.code });
+                    
+                    // Add option to viewing picker
+                    const opt = document.createElement('option');
+                    opt.value = uid;
+                    opt.innerText = data.username;
+                    selector.appendChild(opt);
+                }
+            }
+            window.myConnections = profiles;
+
+            // Render selectors & Chat list dynamically
+            if (profiles.length > 0) {
+                document.getElementById('view-picker-container').classList.remove('hidden');
+            } else {
+                document.getElementById('view-picker-container').classList.add('hidden');
+            }
+
+            renderChatsList();
+        }
+
+        // Global Alert Listeners on connected users (To notify Mom from any of her kids' planners)
+        function listenToAllConnectionsAlerts() {
+            // Cancel any old listeners
+            Object.values(window.alertListeners).forEach(unsub => unsub());
+            window.alertListeners = {};
+
+            const connections = window.currentUserData.connections || [];
+            connections.forEach(uid => {
+                const unsub = onSnapshot(doc(db, "planners", uid), async (snap) => {
+                    if (snap.exists()) {
+                        const data = snap.data();
+                        const req = data.breakfastRequest;
+                        const mySentTimestamp = parseInt(localStorage.getItem('mySentTimestamp') || '0');
+
+                        if (req && req.active && req.timestamp !== mySentTimestamp) {
+                            // Show overlay because a connected user sent an alert
+                            showAlarmModal();
+                            if (req.timestamp !== lastAlertTimestamp) {
+                                lastAlertTimestamp = req.timestamp;
+                                triggerLocalAppAlertEffects();
+                            }
+                        }
+                    }
+                });
+                window.alertListeners[uid] = unsub;
+            });
+        }
+
+        // Clear listeners on Log Out
+        function cleanupSessionListeners() {
+            if (window.plannerUnsubscribe) window.plannerUnsubscribe();
+            if (window.activeChatUnsubscribe) window.activeChatUnsubscribe();
+            Object.values(window.alertListeners).forEach(unsub => unsub());
+            window.alertListeners = {};
+        }
+
+        // SignUp operation
+        window.signUpUser = async function(username, password) {
+            const normalizedEmail = `${username.toLowerCase().trim()}@breakfastapp.local`;
+            try {
+                const userCredential = await createUserWithEmailAndPassword(auth, normalizedEmail, password);
+                const uniqueCode = generateUniqueAccountCode();
+                
+                // Write user meta-data to users collection
+                await setDoc(doc(db, "users", userCredential.user.uid), {
+                    uid: userCredential.user.uid,
+                    username: username.trim(),
+                    code: uniqueCode,
+                    connections: []
+                });
+                
+                // Set default blank weekly plan
+                await setDoc(doc(db, "planners", userCredential.user.uid), {
+                    Monday: '', Tuesday: '', Wednesday: '', Thursday: '', Friday: '', Saturday: '', Sunday: '',
+                    breakfastRequest: { active: false, timestamp: 0 }
+                });
+
+                console.log("Signup Completed Successfully.");
+            } catch (err) {
+                alert("Sign Up failed: " + err.message);
+            }
+        };
+
+        // LogIn operation
+        window.logInUser = async function(username, password) {
+            const normalizedEmail = `${username.toLowerCase().trim()}@breakfastapp.local`;
+            try {
+                await signInWithEmailAndPassword(auth, normalizedEmail, password);
+                console.log("Logged In Successfully.");
+            } catch (err) {
+                alert("Login Failed. Please check username and password.");
+            }
+        };
+
+        // LogOut operation
+        window.logOutUser = async function() {
+            if (confirm(currentLang === 'ur' ? 'کیا آپ لاگ آؤٹ کرنا چاہتے ہیں؟' : 'Are you sure you want to log out?')) {
+                await signOut(auth);
+            }
+        };
+
+        // Account Deletion operation
+        window.deleteUserAccount = async function() {
+            if (confirm(translations[currentLang].resetConfirm)) {
+                try {
+                    const user = auth.currentUser;
+                    if (user) {
+                        const userUid = user.uid;
+                        // Delete collection data
+                        await deleteDoc(doc(db, "users", userUid));
+                        await deleteDoc(doc(db, "planners", userUid));
+                        // Delete auth user
+                        await deleteUser(user);
+                        console.log("Account deleted successfully.");
+                    }
+                } catch (err) {
+                    alert("Authentication session expired. Please re-login and try again to delete account.");
+                }
+            }
+        };
+
+        // Interconnect accounts via code matching
+        window.connectUserByCode = async function() {
+            const inputField = document.getElementById('connection-code-input');
+            const targetCode = inputField.value.trim().toUpperCase();
+            if (!targetCode) return;
+
+            if (targetCode === window.currentUserData.code) {
+                alert(currentLang === 'ur' ? "آپ اپنے اکاؤنٹ کو خود سے نہیں جوڑ سکتے" : "You cannot connect your own account.");
                 return;
             }
+
             try {
-                if (!window.plannerData.breakfastRequest) {
-                    window.plannerData.breakfastRequest = { active: false, timestamp: 0 };
+                // Query Firestore to search for the matching code profile
+                const q = query(collection(db, "users"), where("code", "==", targetCode));
+                const snap = await getDocs(q);
+                
+                let targetUser = null;
+                snap.forEach(doc => {
+                    targetUser = doc.data();
+                });
+
+                if (targetUser) {
+                    // Update connections for both users
+                    await updateDoc(doc(db, "users", auth.currentUser.uid), {
+                        connections: arrayUnion(targetUser.uid)
+                    });
+                    await updateDoc(doc(db, "users", targetUser.uid), {
+                        connections: arrayUnion(auth.currentUser.uid)
+                    });
+
+                    // Refresh local user state data
+                    window.currentUserData.connections.push(targetUser.uid);
+                    inputField.value = '';
+                    await loadConnectionProfiles();
+                    listenToAllConnectionsAlerts();
+                    alert(currentLang === 'ur' ? "رابطہ کامیابی سے شامل ہو گیا!" : "Connected successfully!");
+                } else {
+                    alert(currentLang === 'ur' ? "غلط اکاؤنٹ کوڈ" : "Invalid account code. Please double check.");
                 }
-                // merge: true keeps files perfectly synchronized without complete overrides
-                await setDoc(doc(db, "planners", "weekly-plan"), window.plannerData, { merge: true });
-            } catch (e) {
-                console.error("Firestore write failed:", e);
-                localStorage.setItem('breakfastPlannerData', JSON.stringify(window.plannerData));
-                window.renderPlanner();
+            } catch (err) {
+                console.error("Connection failed: ", err);
             }
+        };
+
+        // Open Realtime Chat Interface
+        window.openChatConnection = function(targetUid, targetUsername) {
+            const currentUid = auth.currentUser.uid;
+            
+            // Build consistent mutual chatId (alphabetically ordered join)
+            const chatId = currentUid < targetUid ? `${currentUid}_${targetUid}` : `${targetUid}_${currentUid}`;
+            window.activeChatId = chatId;
+
+            document.getElementById('chat-header-name').innerText = targetUsername;
+            document.getElementById('chat-messages-flow').innerHTML = '';
+            document.getElementById('chat-conversation-container').classList.remove('hidden');
+
+            // Button targets viewing their planner inside chat
+            document.getElementById('btn-chat-view-planner').onclick = () => {
+                document.getElementById('chat-conversation-container').classList.add('hidden');
+                switchTab('planner');
+                document.getElementById('planner-view-selector').value = targetUid;
+                switchPlannerView(targetUid);
+            };
+
+            // Listen in real-time to active messages collection
+            if (window.activeChatUnsubscribe) window.activeChatUnsubscribe();
+            
+            const messagesQuery = query(
+                collection(db, `chats/${chatId}/messages`),
+                orderBy("timestamp", "asc")
+            );
+
+            window.activeChatUnsubscribe = onSnapshot(messagesQuery, (snapshot) => {
+                const flow = document.getElementById('chat-messages-flow');
+                flow.innerHTML = '';
+                
+                snapshot.forEach(msgDoc => {
+                    const data = msgDoc.data();
+                    const isMe = data.senderId === currentUid;
+                    
+                    const msgElement = document.createElement('div');
+                    msgElement.className = `flex ${isMe ? 'justify-end' : 'justify-start'}`;
+                    msgElement.innerHTML = `
+                        <div class="max-w-[80%] rounded-2xl px-4 py-3 text-base font-bold shadow-sm ${isMe ? 'bg-amber-500 text-white rounded-tr-none' : 'bg-white text-slate-800 rounded-tl-none border border-slate-100'}">
+                            ${data.text}
+                        </div>
+                    `;
+                    flow.appendChild(msgElement);
+                });
+                
+                // Smooth scroll to bottom
+                flow.scrollTop = flow.scrollHeight;
+            });
+        };
+
+        // Dispatch a Message
+        window.sendActiveChatMessage = async function() {
+            const input = document.getElementById('chat-entry-input');
+            const text = input.value.trim();
+            if (!text || !window.activeChatId) return;
+
+            try {
+                input.value = '';
+                await addDoc(collection(db, `chats/${window.activeChatId}/messages`), {
+                    senderId: auth.currentUser.uid,
+                    text: text,
+                    timestamp: Date.now() // Standard quick timestamp fallback
+                });
+            } catch (err) {
+                console.error("Message send failed:", err);
+            }
+        };
+
+        // Firebase helper helper query
+        async function getDocs(q) {
+            const querySnapshot = await getDoc(q); // dummy intercept query wrapper
+            // fallback directly to Firebase standard module imports for safety
+            const { getDocs: fireGetDocs } = await import("https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js");
+            return await fireGetDocs(q);
+        }
+
+        // Generate Account IDs
+        function generateUniqueAccountCode() {
+            const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // Clean character range to prevent ambiguous reads (0/O, 1/I)
+            let result = 'BF-';
+            for (let i = 0; i < 5; i++) {
+                result += chars.charAt(Math.floor(Math.random() * chars.length));
+            }
+            return result;
         }
     </script>
 
-    <!-- UI Operations Script -->
+    <!-- UI Logic Script -->
     <script>
-        // Secret communication channel automatically derived from your project ID
-        const ntfyTopic = "breakfast-bell-f20a8"; 
-
         const translations = {
             en: {
                 appTitle: "Breakfast",
@@ -286,6 +728,28 @@
                 alarmHeader: "Breakfast Alert!",
                 alarmText: "Someone is awake and requested breakfast.",
                 alarmDismiss: "I'm on it!",
+                
+                // Account Additions
+                authHeading: "Breakfast Account",
+                authSub: "Create an account or log in to manage plans",
+                username: "Username",
+                password: "Password",
+                login: "Log In",
+                signUp: "Sign Up",
+                noAccount: "Don't have an account? Sign Up",
+                hasAccount: "Already have an account? Log In",
+                profile: "Profile",
+                chat: "Chat",
+                planner: "Planner",
+                logout: "Log Out",
+                deleteAccount: "Delete Account",
+                addConnection: "Add Connection",
+                activeChats: "Active Chats",
+                noChats: "No connections added yet. Type an account code above to connect with Mom or Child!",
+                viewPlanner: "View Planner",
+                msgPlaceholder: "Type message...",
+                viewingPlannerLabel: "Viewing Planner:",
+                deleteConfirm: "Are you sure you want to permanently delete your account?",
                 days: {
                     Monday: "Monday",
                     Tuesday: "Tuesday",
@@ -331,6 +795,28 @@
                 alarmHeader: "ناشتے کا الرٹ!",
                 alarmText: "کوئی جاگ گیا ہے اور ناشتے کی فرمائش کی ہے۔",
                 alarmDismiss: "ٹھیک ہے، میں بناتی ہوں",
+
+                // Account Additions
+                authHeading: "ناشتہ اکاؤنٹ",
+                authSub: "اپنے ہفتہ وار منصوبوں کے لیے اکاؤنٹ بنائیں یا لاگ ان کریں",
+                username: "صارف کا نام",
+                password: "پاس ورڈ",
+                login: "لاگ ان کریں",
+                signUp: "سائن اپ کریں",
+                noAccount: "اکاؤنٹ نہیں ہے؟ سائن اپ کریں",
+                hasAccount: "پہلے سے اکاؤنٹ ہے؟ لاگ ان کریں",
+                profile: "پروفائل",
+                chat: "بات چیت",
+                planner: "منصوبہ",
+                logout: "لاگ آؤٹ",
+                deleteAccount: "اکاؤنٹ مستقل حذف کریں",
+                addConnection: "رابطہ شامل کریں",
+                activeChats: "بات چیت",
+                noChats: "ابھی تک کوئی رابطہ شامل نہیں ہوا۔ امی یا بچے کے اکاؤنٹ کا کوڈ اوپر درج کر کے منسلک ہوں!",
+                viewPlanner: "منصوبہ دیکھیں",
+                msgPlaceholder: "پیغام لکھیں...",
+                viewingPlannerLabel: "منصوبہ دیکھیں برائے:",
+                deleteConfirm: "کیا آپ واقعی مستقل طور پر اپنا اکاؤنٹ حذف کرنا چاہتے ہیں؟",
                 days: {
                     Monday: "پیر",
                     Tuesday: "منگل",
@@ -351,18 +837,141 @@
             }
         };
 
-        const daysKeyList = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
         let currentLang = localStorage.getItem('breakfastLang') || 'en';
+        let authMode = "login"; // "login" or "signup"
 
-        function getTodayEnglishDay() {
-            const date = new Date();
-            const daysOfWeek = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-            return daysOfWeek[date.getDay()];
+        function toggleAuthMode() {
+            const t = translations[currentLang];
+            const btnPrimary = document.getElementById('btn-auth-primary');
+            const btnToggle = document.getElementById('btn-auth-toggle');
+
+            if (authMode === "login") {
+                authMode = "signup";
+                btnPrimary.innerText = t.signUp;
+                btnToggle.innerText = t.hasAccount;
+            } else {
+                authMode = "login";
+                btnPrimary.innerText = t.login;
+                btnToggle.innerText = t.noAccount;
+            }
         }
 
-        function askNotificationPermission() {
-            if ("Notification" in window && Notification.permission === "default") {
-                Notification.requestPermission();
+        function handleAuthAction() {
+            const usernameInput = document.getElementById('auth-username').value.trim();
+            const passwordInput = document.getElementById('auth-password').value;
+
+            if (!usernameInput || !passwordInput) {
+                alert("Please enter both username and password.");
+                return;
+            }
+
+            if (passwordInput.length < 6) {
+                alert("Password must be at least 6 characters.");
+                return;
+            }
+
+            if (authMode === "login") {
+                window.logInUser(usernameInput, passwordInput);
+            } else {
+                window.signUpUser(usernameInput, passwordInput);
+            }
+        }
+
+        function changeLanguage(lang) {
+            currentLang = lang;
+            localStorage.setItem('breakfastLang', lang);
+            window.renderPlanner();
+            updateTabIcons();
+        }
+
+        function switchTab(tab) {
+            // Hide all workspaces
+            document.getElementById('pane-planner').classList.add('hidden');
+            document.getElementById('pane-chat').classList.add('hidden');
+            document.getElementById('pane-profile').classList.add('hidden');
+
+            // Reset navigation indicators
+            const buttons = ['planner', 'chat', 'profile'];
+            buttons.forEach(b => {
+                const btn = document.getElementById(`nav-btn-${b}`);
+                btn.classList.replace('text-amber-500', 'text-slate-400');
+                btn.classList.replace('font-extrabold', 'font-bold');
+            });
+
+            // Activate chosen workspace
+            document.getElementById(`pane-${tab}`).classList.remove('hidden');
+            const activeBtn = document.getElementById(`nav-btn-${tab}`);
+            activeBtn.classList.replace('text-slate-400', 'text-amber-500');
+            activeBtn.classList.replace('font-bold', 'font-extrabold');
+        }
+
+        function updateTabIcons() {
+            const t = translations[currentLang];
+            document.getElementById('lbl-nav-planner').innerText = t.planner;
+            document.getElementById('lbl-nav-chat').innerText = t.chat;
+            document.getElementById('lbl-nav-profile').innerText = t.profile;
+        }
+
+        // Switch viewed weekly planner
+        function switchPlannerView(targetUid) {
+            window.setupPlannerSync(targetUid);
+        }
+
+        // Render connected user lists for Chats tab
+        function renderChatsList() {
+            const container = document.getElementById('chats-list-container');
+            container.innerHTML = '';
+            const t = translations[currentLang];
+
+            if (window.myConnections.length === 0) {
+                container.innerHTML = `
+                    <div class="p-6 bg-white border border-slate-200 border-dashed rounded-2xl text-center">
+                        <p class="text-sm text-slate-400 font-bold">${t.noChats}</p>
+                    </div>
+                `;
+                return;
+            }
+
+            window.myConnections.forEach(conn => {
+                const chatCard = document.createElement('div');
+                chatCard.onclick = () => window.openChatConnection(conn.uid, conn.username);
+                chatCard.className = "bg-white border border-slate-200 rounded-xl p-4 flex items-center justify-between gap-3 cursor-pointer hover:bg-slate-50 transition active:scale-[0.99]";
+                chatCard.innerHTML = `
+                    <div class="flex items-center gap-3">
+                        <div class="w-12 h-12 bg-amber-100 text-amber-700 rounded-xl flex items-center justify-center text-xl font-bold">
+                            👤
+                        </div>
+                        <div>
+                            <h4 class="font-bold text-slate-900 text-base">${conn.username}</h4>
+                            <p class="text-xs text-slate-400 font-bold uppercase tracking-wider">${conn.code}</p>
+                        </div>
+                    </div>
+                    <div class="p-2 text-amber-500 bg-amber-50 rounded-xl">
+                        <i data-lucide="message-square" class="w-5 h-5"></i>
+                    </div>
+                `;
+                container.appendChild(chatCard);
+            });
+            lucide.createIcons();
+        }
+
+        function closeActiveChatConversation() {
+            document.getElementById('chat-conversation-container').classList.add('hidden');
+            if (window.activeChatUnsubscribe) window.activeChatUnsubscribe();
+            window.activeChatId = null;
+        }
+
+        function viewChatTargetPlanner() {
+            // Managed inside window.openChatConnection dynamically
+        }
+
+        async function copyAccountCode() {
+            const code = document.getElementById('user-display-code').innerText;
+            try {
+                await navigator.clipboard.writeText(code);
+                alert(currentLang === 'ur' ? "اکاؤنٹ کوڈ کاپی ہو گیا!" : "Account code copied to clipboard!");
+            } catch (err) {
+                console.error("Clipboard copy failed.");
             }
         }
 
@@ -379,13 +988,38 @@
                 document.body.setAttribute('dir', 'ltr');
             }
 
-            document.getElementById('app-title').innerText = t.appTitle;
+            // Auth View translation
+            document.getElementById('auth-title').innerText = t.appTitle;
+            document.getElementById('auth-subtitle').innerText = t.authSub;
+            document.getElementById('label-username').innerText = t.username;
+            document.getElementById('label-password').innerText = t.password;
+            
+            const btnPrimary = document.getElementById('btn-auth-primary');
+            const btnToggle = document.getElementById('btn-auth-toggle');
+            if (authMode === "login") {
+                btnPrimary.innerText = t.login;
+                btnToggle.innerText = t.noAccount;
+            } else {
+                btnPrimary.innerText = t.signUp;
+                btnToggle.innerText = t.hasAccount;
+            }
+
+            // Planner Tab translation
             document.getElementById('today-heading').innerText = t.todayHeading;
             document.getElementById('weekly-heading').innerText = t.weeklyHeading;
+            document.getElementById('btn-reset').innerHTML = `<i data-lucide="rotate-ccw" class="w-4 h-4"></i> ${t.resetWeek}`;
+            document.getElementById('label-viewing-planner').innerText = t.viewingPlannerLabel;
 
+            document.getElementById('label-custom').innerText = t.customName;
+            document.getElementById('label-presets').innerText = t.presets;
+            document.getElementById('btn-cancel').innerText = t.cancel;
+            document.getElementById('btn-save').innerText = t.save;
+            document.getElementById('breakfast-input').placeholder = t.placeholder;
+
+            // Alert Widget translation
             document.getElementById('bell-heading').innerText = t.bellHeading;
             
-            const isAlertActive = window.plannerData.breakfastRequest && window.plannerData.breakfastRequest.active;
+            const isAlertActive = window.plannerData && window.plannerData.breakfastRequest && window.plannerData.breakfastRequest.active;
             const sendButton = document.getElementById('btn-bell-send');
             const bellIcon = document.getElementById('bell-icon');
 
@@ -403,11 +1037,27 @@
                 bellIcon.classList.remove('animate-swing', 'text-rose-500');
             }
 
+            // Alarm Overlay translation
             document.getElementById('alarm-title').innerText = t.alarmHeader;
             document.getElementById('alarm-text').innerText = t.alarmText;
             document.getElementById('btn-alarm-dismiss').innerText = t.alarmDismiss;
 
+            // Chat Tab translation
+            document.getElementById('heading-add-connection').innerText = t.addConnection;
+            document.getElementById('connection-code-input').placeholder = t.enterCode;
+            document.getElementById('btn-connect-submit').innerText = t.connectBtn;
+            document.getElementById('heading-active-chats').innerText = t.activeChats;
+            document.getElementById('btn-chat-view-planner').innerText = t.viewPlanner;
+            document.getElementById('chat-entry-input').placeholder = t.msgPlaceholder;
+
+            // Profile Tab translation
+            document.getElementById('profile-role-tag').innerText = t.appTitle;
+            document.getElementById('label-acc-code').innerText = t.connectionCode;
+            document.getElementById('btn-logout').innerText = t.logout;
+            document.getElementById('btn-delete-account').innerText = t.deleteAccount;
+
             document.getElementById('lang-selector').value = currentLang;
+            updateTabIcons();
         }
 
         window.renderPlanner = function() {
@@ -473,27 +1123,30 @@
             // Mark locally immediately as "sent" on this device
             localStorage.setItem('mySentTimestamp', now.toString());
 
-            // Instantly update UI locally (Skip sequential DB delays for instant click visual)
+            // Instantly update UI locally
             window.plannerData.breakfastRequest = {
                 active: true,
                 timestamp: now
             };
             window.renderPlanner();
 
-            // Fire ntfy background push request concurrently (Doesn't block user action)
-            const isUrdu = currentLang === 'ur';
-            const title = isUrdu ? "ناشتہ تیار کریں!" : "Make Breakfast!";
-            const body = isUrdu ? "کوئی جاگ گیا ہے اور ناشتے کا انتظار کر رہا ہے۔" : "Someone is awake and waiting for breakfast.";
+            // Fire ntfy background push request concurrently
+            try {
+                const isUrdu = currentLang === 'ur';
+                const title = isUrdu ? "ناشتہ تیار کریں!" : "Make Breakfast!";
+                const body = isUrdu ? "کوئی جاگ گیا ہے اور ناشتے کا انتظار کر رہا ہے۔" : "Someone is awake and waiting for breakfast.";
 
-            fetch(`https://ntfy.sh/${ntfyTopic}`, {
-                method: 'POST',
-                body: body,
-                headers: {
-                    'Title': title,
-                    'Priority': 'high', // Force vibrate and ring screen popup
-                    'Tags': 'coffee,bell'
-                }
-            }).catch(e => console.error("Push dispatcher error:", e));
+                // Send to your Mother's subscribed PWA channel
+                fetch(`https://ntfy.sh/${ntfyTopic}`, {
+                    method: 'POST',
+                    body: body,
+                    headers: {
+                        'Title': title,
+                        'Priority': 'high', 
+                        'Tags': 'coffee,bell'
+                    }
+                }).catch(e => console.error("Push dispatcher error:", e));
+            } catch (err) {}
 
             // Write state asynchronously to database
             await window.saveDataToBackend();
@@ -518,7 +1171,7 @@
             overlay.classList.add('hidden');
         }
 
-        // Custom chime generated dynamically using Web Audio API (No files to download or fail)
+        // Custom chime generated dynamically using Web Audio API
         function playChime() {
             try {
                 const ctx = new (window.AudioContext || window.webkitAudioContext)();
@@ -540,7 +1193,6 @@
                     osc.stop(start + duration);
                 };
                 
-                // Play a pleasant, noticeable double bell chime
                 playNote(523.25, now, 0.4);      // C5
                 playNote(659.25, now + 0.15, 0.5); // E5
             } catch (e) {
@@ -590,12 +1242,6 @@
             if (lower.includes('croissant') || lower.includes('bread') || lower.includes('روٹی')) return '🥐';
             if (lower.includes('fruit') || lower.includes('salad') || lower.includes('پھل')) return '🍓';
             return '🍽️';
-        }
-
-        function changeLanguage(lang) {
-            currentLang = lang;
-            localStorage.setItem('breakfastLang', lang);
-            window.renderPlanner();
         }
 
         function openModal(day) {
@@ -670,6 +1316,7 @@
             if (e.target === this) closeModal();
         });
 
+        // Register Service Worker for PWA
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
                 navigator.serviceWorker.register('./sw.js')
