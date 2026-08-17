@@ -7,7 +7,7 @@
     <!-- Web App Manifest for PWA -->
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#f59e0b">
-    <link class="apple-touch-icon" href="icon.svg">
+    <link rel="apple-touch-icon" href="icon.svg">
     
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -40,7 +40,30 @@
 </head>
 <body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col font-english selection:bg-amber-100 selection:text-amber-900 transition-all duration-200">
 
-    <!-- Optimistic UI State Script (Runs instantly to prevent login screen flicker on reload) -->
+    <!-- IN-APP REAL-TIME DIAGNOSTIC OVERLAY -->
+    <script>
+        // Catch any raw JavaScript errors and display them on-screen [2]
+        window.onerror = function(message, source, lineno, colno, error) {
+            showDiagnosticBanner(`Script Error: ${message} (Line ${lineno})`);
+            return false;
+        };
+        window.addEventListener('unhandledrejection', function(event) {
+            showDiagnosticBanner(`Unhandled Rejection: ${event.reason}`);
+        });
+
+        function showDiagnosticBanner(msg) {
+            let banner = document.getElementById('db-warning-banner');
+            if (!banner) {
+                banner = document.createElement('div');
+                banner.id = 'db-warning-banner';
+                banner.className = 'bg-red-600 text-white text-xs font-bold text-center py-2 px-4 sticky top-0 z-50 shadow-md';
+                document.body.prepend(banner);
+            }
+            banner.innerText = msg;
+        }
+    </script>
+
+    <!-- Optimistic UI State Script -->
     <script>
         const isOptimisticLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
         document.addEventListener('DOMContentLoaded', () => {
@@ -122,7 +145,7 @@
             
             <!-- TAB 1: Planner Workspace -->
             <section id="pane-planner" class="space-y-4">
-                <!-- Dropdown to select whose planner you are viewing (Enabled when connected to parent/child) -->
+                <!-- Dropdown to select whose planner you are viewing -->
                 <div id="view-picker-container" class="hidden bg-white border border-slate-200 rounded-2xl p-3 shadow-sm flex items-center justify-between gap-3">
                     <span id="label-viewing-planner" class="text-sm font-bold text-slate-400">Viewing Planner:</span>
                     <select id="planner-view-selector" onchange="switchPlannerView(this.value)" class="bg-amber-50 text-amber-900 font-bold text-base px-3 py-2 rounded-xl border border-amber-200 focus:outline-none">
@@ -206,7 +229,6 @@
                         </div>
                         <div>
                             <h2 id="profile-username-display" class="text-2xl font-extrabold text-slate-900">username</h2>
-                            <!-- Version Indicator under Profile Tag -->
                             <p class="text-sm text-slate-400"><span id="profile-role-tag">Breakfast Member</span> • <span class="font-extrabold text-slate-500">v2.2.0</span></p>
                         </div>
                     </div>
@@ -614,36 +636,40 @@
             const finalUid = targetUid === 'mine' ? auth.currentUser.uid : targetUid;
 
             window.plannerUnsubscribe = onSnapshot(doc(db, "planners", finalUid), (docSnap) => {
-                window.isDataLoaded = true;
+                try {
+                    window.isDataLoaded = true;
 
-                if (docSnap.exists()) {
-                    window.plannerData = docSnap.data();
-                } else {
-                    window.plannerData = { 
-                        Monday: '', Tuesday: '', Wednesday: '', Thursday: '', Friday: '', Saturday: '', Sunday: '',
-                        breakfastRequest: { active: false, timestamp: 0 }
-                    };
-                }
-
-                // Handle system-level wake up alarm pop-ups on screen
-                const req = window.plannerData.breakfastRequest;
-                const mySentTimestamp = parseInt(localStorage.getItem('mySentTimestamp') || '0');
-
-                if (req && req.active) {
-                    if (req.timestamp === mySentTimestamp) {
-                        hideAlarmModal();
+                    if (docSnap.exists()) {
+                        window.plannerData = docSnap.data();
                     } else {
-                        showAlarmModal();
-                        if (req.timestamp !== lastAlertTimestamp) {
-                            lastAlertTimestamp = req.timestamp;
-                            triggerLocalAppAlertEffects();
-                        }
+                        window.plannerData = { 
+                            Monday: '', Tuesday: '', Wednesday: '', Thursday: '', Friday: '', Saturday: '', Sunday: '',
+                            breakfastRequest: { active: false, timestamp: 0 }
+                        };
                     }
-                } else {
-                    hideAlarmModal();
-                }
 
-                window.renderPlanner();
+                    // Handle system-level wake up alarm pop-ups on screen
+                    const req = window.plannerData.breakfastRequest;
+                    const mySentTimestamp = parseInt(localStorage.getItem('mySentTimestamp') || '0');
+
+                    if (req && req.active) {
+                        if (req.timestamp === mySentTimestamp) {
+                            hideAlarmModal();
+                        } else {
+                            showAlarmModal();
+                            if (req.timestamp !== lastAlertTimestamp) {
+                                lastAlertTimestamp = req.timestamp;
+                                triggerLocalAppAlertEffects();
+                            }
+                        }
+                    } else {
+                        hideAlarmModal();
+                    }
+
+                    window.renderPlanner();
+                } catch (err) {
+                    showDiagnosticBanner(`Snapshot Processing Error: ${err.message}`);
+                }
             }, (err) => {
                 console.error("Error reading from Firestore planner:", err);
                 fallbackToOfflinePlanner(err);
@@ -1025,7 +1051,7 @@
             buttons.forEach(b => {
                 const btn = document.getElementById(`nav-btn-${b}`);
                 btn.classList.replace('text-amber-500', 'text-slate-400');
-                btn.classList.replace('font-extrabold', 'font-bold');
+                btn.classList.replace('font-bold', 'font-extrabold');
             });
 
             document.getElementById(`pane-${tab}`).classList.remove('hidden');
@@ -1100,138 +1126,146 @@
         }
 
         function updateUITexts() {
-            const t = translations[currentLang];
-            
-            if (currentLang === 'ur') {
-                document.body.classList.add('font-urdu');
-                document.body.classList.remove('font-english');
-                document.body.setAttribute('dir', 'rtl');
-            } else {
-                document.body.classList.add('font-english');
-                document.body.classList.remove('font-urdu');
-                document.body.setAttribute('dir', 'ltr');
+            try {
+                const t = translations[currentLang];
+                
+                if (currentLang === 'ur') {
+                    document.body.classList.add('font-urdu');
+                    document.body.classList.remove('font-english');
+                    document.body.setAttribute('dir', 'rtl');
+                } else {
+                    document.body.classList.add('font-english');
+                    document.body.classList.remove('font-urdu');
+                    document.body.setAttribute('dir', 'ltr');
+                }
+
+                // Fixed app-title selector binding
+                document.getElementById('app-title').innerText = t.appTitle;
+                document.getElementById('auth-title').innerText = t.appTitle;
+                document.getElementById('auth-subtitle').innerText = t.authSub;
+                document.getElementById('label-username').innerText = t.username;
+                document.getElementById('label-password').innerText = t.password;
+                
+                const btnPrimary = document.getElementById('btn-auth-primary');
+                const btnToggle = document.getElementById('btn-auth-toggle');
+                if (authMode === "login") {
+                    btnPrimary.innerText = t.login;
+                    btnToggle.innerText = t.noAccount;
+                } else {
+                    btnPrimary.innerText = t.signUp;
+                    btnToggle.innerText = t.hasAccount;
+                }
+
+                document.getElementById('today-heading').innerText = t.todayHeading;
+                document.getElementById('weekly-heading').innerText = t.weeklyHeading;
+                document.getElementById('btn-reset').innerHTML = `<i data-lucide="rotate-ccw" class="w-4 h-4"></i> ${t.resetWeek}`;
+                document.getElementById('label-viewing-planner').innerText = t.viewingPlannerLabel;
+
+                document.getElementById('label-custom').innerText = t.customName;
+                document.getElementById('label-presets').innerText = t.presets;
+                document.getElementById('btn-cancel').innerText = t.cancel;
+                document.getElementById('btn-save').innerText = t.save;
+                document.getElementById('breakfast-input').placeholder = t.placeholder;
+
+                document.getElementById('bell-heading').innerText = t.bellHeading;
+                
+                const isAlertActive = window.plannerData && window.plannerData.breakfastRequest && window.plannerData.breakfastRequest.active;
+                const sendButton = document.getElementById('btn-bell-send');
+                const bellIcon = document.getElementById('bell-icon');
+
+                if (isAlertActive) {
+                    document.getElementById('bell-status').innerText = t.bellSent;
+                    sendButton.innerText = t.bellSent;
+                    sendButton.disabled = true;
+                    sendButton.classList.replace('bg-rose-500', 'bg-rose-300');
+                    bellIcon.classList.add('animate-swing', 'text-rose-500');
+                } else {
+                    document.getElementById('bell-status').innerText = t.bellStatus;
+                    sendButton.innerText = t.bellBtn;
+                    sendButton.disabled = false;
+                    sendButton.classList.replace('bg-rose-300', 'bg-rose-500');
+                    bellIcon.classList.remove('animate-swing', 'text-rose-500');
+                }
+
+                document.getElementById('alarm-title').innerText = t.alarmHeader;
+                document.getElementById('alarm-text').innerText = t.alarmText;
+                document.getElementById('btn-alarm-dismiss').innerText = t.alarmDismiss;
+
+                document.getElementById('heading-add-connection').innerText = t.addConnection;
+                document.getElementById('connection-code-input').placeholder = t.enterCode;
+                document.getElementById('btn-connect-submit').innerText = t.connectBtn;
+                document.getElementById('heading-active-chats').innerText = t.activeChats;
+                document.getElementById('btn-chat-view-planner').innerText = t.viewPlanner;
+                document.getElementById('chat-entry-input').placeholder = t.msgPlaceholder;
+
+                document.getElementById('profile-role-tag').innerText = t.appTitle;
+                document.getElementById('label-acc-code').innerText = t.connectionCode;
+                document.getElementById('btn-logout').innerText = t.logout;
+                document.getElementById('btn-delete-account').innerText = t.deleteAccount;
+
+                document.getElementById('lang-selector').value = currentLang;
+                updateTabIcons();
+            } catch (err) {
+                showDiagnosticBanner(`UI Text Loading Error: ${err.message}`);
             }
-
-            // Fixed app-title selector binding
-            document.getElementById('app-title').innerText = t.appTitle;
-            document.getElementById('auth-title').innerText = t.appTitle;
-            document.getElementById('auth-subtitle').innerText = t.authSub;
-            document.getElementById('label-username').innerText = t.username;
-            document.getElementById('label-password').innerText = t.password;
-            
-            const btnPrimary = document.getElementById('btn-auth-primary');
-            const btnToggle = document.getElementById('btn-auth-toggle');
-            if (authMode === "login") {
-                btnPrimary.innerText = t.login;
-                btnToggle.innerText = t.noAccount;
-            } else {
-                btnPrimary.innerText = t.signUp;
-                btnToggle.innerText = t.hasAccount;
-            }
-
-            document.getElementById('today-heading').innerText = t.todayHeading;
-            document.getElementById('weekly-heading').innerText = t.weeklyHeading;
-            document.getElementById('btn-reset').innerHTML = `<i data-lucide="rotate-ccw" class="w-4 h-4"></i> ${t.resetWeek}`;
-            document.getElementById('label-viewing-planner').innerText = t.viewingPlannerLabel;
-
-            document.getElementById('label-custom').innerText = t.customName;
-            document.getElementById('label-presets').innerText = t.presets;
-            document.getElementById('btn-cancel').innerText = t.cancel;
-            document.getElementById('btn-save').innerText = t.save;
-            document.getElementById('breakfast-input').placeholder = t.placeholder;
-
-            document.getElementById('bell-heading').innerText = t.bellHeading;
-            
-            const isAlertActive = window.plannerData && window.plannerData.breakfastRequest && window.plannerData.breakfastRequest.active;
-            const sendButton = document.getElementById('btn-bell-send');
-            const bellIcon = document.getElementById('bell-icon');
-
-            if (isAlertActive) {
-                document.getElementById('bell-status').innerText = t.bellSent;
-                sendButton.innerText = t.bellSent;
-                sendButton.disabled = true;
-                sendButton.classList.replace('bg-rose-500', 'bg-rose-300');
-                bellIcon.classList.add('animate-swing', 'text-rose-500');
-            } else {
-                document.getElementById('bell-status').innerText = t.bellStatus;
-                sendButton.innerText = t.bellBtn;
-                sendButton.disabled = false;
-                sendButton.classList.replace('bg-rose-300', 'bg-rose-500');
-                bellIcon.classList.remove('animate-swing', 'text-rose-500');
-            }
-
-            document.getElementById('alarm-title').innerText = t.alarmHeader;
-            document.getElementById('alarm-text').innerText = t.alarmText;
-            document.getElementById('btn-alarm-dismiss').innerText = t.alarmDismiss;
-
-            document.getElementById('heading-add-connection').innerText = t.addConnection;
-            document.getElementById('connection-code-input').placeholder = t.enterCode;
-            document.getElementById('btn-connect-submit').innerText = t.connectBtn;
-            document.getElementById('heading-active-chats').innerText = t.activeChats;
-            document.getElementById('btn-chat-view-planner').innerText = t.viewPlanner;
-            document.getElementById('chat-entry-input').placeholder = t.msgPlaceholder;
-
-            document.getElementById('profile-role-tag').innerText = t.appTitle;
-            document.getElementById('label-acc-code').innerText = t.connectionCode;
-            document.getElementById('btn-logout').innerText = t.logout;
-            document.getElementById('btn-delete-account').innerText = t.deleteAccount;
-
-            document.getElementById('lang-selector').value = currentLang;
-            updateTabIcons();
         }
 
         window.renderPlanner = function() {
-            updateUITexts();
-            const t = translations[currentLang];
-            const grid = document.getElementById('planner-grid');
-            grid.innerHTML = '';
+            try {
+                updateUITexts();
+                const t = translations[currentLang];
+                const grid = document.getElementById('planner-grid');
+                grid.innerHTML = '';
 
-            const todayEng = getTodayEnglishDay();
-            const todayMeal = window.plannerData[todayEng];
-            const bannerText = todayMeal ? `${getMealEmoji(todayMeal)} ${todayMeal}` : t.noBreakfastToday;
-            document.getElementById('today-meal-text').innerText = bannerText;
+                const todayEng = getTodayEnglishDay();
+                const todayMeal = window.plannerData[todayEng];
+                const bannerText = todayMeal ? `${getMealEmoji(todayMeal)} ${todayMeal}` : t.noBreakfastToday;
+                document.getElementById('today-meal-text').innerText = bannerText;
 
-            daysKeyList.forEach(dayKey => {
-                const meal = window.plannerData[dayKey];
-                const isPlanned = !!meal;
-                const translatedDayName = t.days[dayKey];
+                daysKeyList.forEach(dayKey => {
+                    const meal = window.plannerData[dayKey];
+                    const isPlanned = !!meal;
+                    const translatedDayName = t.days[dayKey];
 
-                const cardHtml = `
-                    <div onclick="openModal('${dayKey}')" class="bg-white border ${isPlanned ? 'border-amber-300 ring-1 ring-amber-100/50 shadow-sm' : 'border-slate-200 border-dashed'} rounded-xl p-3.5 flex items-center justify-between gap-3 cursor-pointer hover:bg-slate-50 transition active:scale-[0.99]">
-                        <div class="flex items-center gap-3.5 min-w-0 flex-1">
-                            <div class="w-16 sm:w-20 flex-shrink-0 flex flex-col">
-                                <span class="text-base font-extrabold text-slate-800 ${todayEng === dayKey ? 'text-amber-500 underline decoration-2' : ''}">${translatedDayName}</span>
-                                ${todayEng === dayKey ? `<span class="text-[10px] font-extrabold uppercase tracking-wider text-amber-500 mt-[-2px]">${t.todayLabel}</span>` : ''}
+                    const cardHtml = `
+                        <div onclick="openModal('${dayKey}')" class="bg-white border ${isPlanned ? 'border-amber-300 ring-1 ring-amber-100/50 shadow-sm' : 'border-slate-200 border-dashed'} rounded-xl p-3.5 flex items-center justify-between gap-3 cursor-pointer hover:bg-slate-50 transition active:scale-[0.99]">
+                            <div class="flex items-center gap-3.5 min-w-0 flex-1">
+                                <div class="w-16 sm:w-20 flex-shrink-0 flex flex-col">
+                                    <span class="text-base font-extrabold text-slate-800 ${todayEng === dayKey ? 'text-amber-500 underline decoration-2' : ''}">${translatedDayName}</span>
+                                    ${todayEng === dayKey ? `<span class="text-[10px] font-extrabold uppercase tracking-wider text-amber-500 mt-[-2px]">${t.todayLabel}</span>` : ''}
+                                </div>
+                                
+                                <div class="flex items-center gap-2 min-w-0 flex-1">
+                                    ${isPlanned ? `
+                                        <span class="text-2xl flex-shrink-0 leading-none">${getMealEmoji(meal)}</span>
+                                        <h4 class="font-extrabold text-slate-900 text-base truncate">${meal}</h4>
+                                    ` : `
+                                        <span class="text-slate-400 text-sm italic font-normal">${t.noMeal}</span>
+                                    `}
+                                </div>
                             </div>
-                            
-                            <div class="flex items-center gap-2 min-w-0 flex-1">
+
+                            <div class="flex items-center flex-shrink-0">
                                 ${isPlanned ? `
-                                    <span class="text-2xl flex-shrink-0 leading-none">${getMealEmoji(meal)}</span>
-                                    <h4 class="font-extrabold text-slate-900 text-base truncate">${meal}</h4>
+                                    <button onclick="event.stopPropagation(); clearDay('${dayKey}')" class="p-2.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition" title="${t.clear}">
+                                        <i data-lucide="trash-2" class="w-5 h-5"></i>
+                                    </button>
                                 ` : `
-                                    <span class="text-slate-400 text-sm italic font-normal">${t.noMeal}</span>
+                                    <div class="p-2 text-amber-500 bg-amber-50 rounded-xl">
+                                        <i data-lucide="plus" class="w-4.5 h-4.5"></i>
+                                    </div>
                                 `}
                             </div>
                         </div>
+                    `;
+                    grid.insertAdjacentHTML('beforeend', cardHtml);
+                });
 
-                        <div class="flex items-center flex-shrink-0">
-                            ${isPlanned ? `
-                                <button onclick="event.stopPropagation(); clearDay('${dayKey}')" class="p-2.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition" title="${t.clear}">
-                                    <i data-lucide="trash-2" class="w-5 h-5"></i>
-                                </button>
-                            ` : `
-                                <div class="p-2 text-amber-500 bg-amber-50 rounded-xl">
-                                    <i data-lucide="plus" class="w-4.5 h-4.5"></i>
-                                </div>
-                            `}
-                        </div>
-                    </div>
-                `;
-                grid.insertAdjacentHTML('beforeend', cardHtml);
-            });
-
-            renderPresets();
-            createIconsSafe();
+                renderPresets();
+                createIconsSafe();
+            } catch (err) {
+                showDiagnosticBanner(`Main Planner Rendering Error: ${err.message}`);
+            }
         }
 
         function renderPresets() {
