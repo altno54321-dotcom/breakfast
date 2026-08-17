@@ -40,6 +40,23 @@
 </head>
 <body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col font-english selection:bg-amber-100 selection:text-amber-900 transition-all duration-200">
 
+    <!-- Optimistic UI State Script (Runs instantly to prevent login screen flicker on reload) -->
+    <script>
+        const isOptimisticLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
+        document.addEventListener('DOMContentLoaded', () => {
+            const authView = document.getElementById('auth-view');
+            const appView = document.getElementById('app-view');
+            if (isOptimisticLoggedIn) {
+                authView.style.display = 'none';
+                appView.style.display = 'flex';
+                appView.classList.remove('hidden');
+            } else {
+                authView.style.display = 'flex';
+                appView.style.display = 'none';
+            }
+        });
+    </script>
+
     <!-- Auth View (Signup / Login) -->
     <div id="auth-view" class="flex-grow flex items-center justify-center p-4 min-h-screen bg-slate-50">
         <div class="bg-white rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-xl border border-slate-100 space-y-6">
@@ -75,7 +92,7 @@
         </div>
     </div>
 
-    <!-- App View Container (Hidden until logged in) -->
+    <!-- App View Container -->
     <div id="app-view" class="hidden flex-col min-h-screen">
         <!-- Compact Mobile Header -->
         <header class="bg-white border-b border-slate-100 py-3.5 px-4 sticky top-0 z-30 shadow-sm backdrop-blur-md bg-white/95">
@@ -84,7 +101,7 @@
                     <div class="p-2 bg-amber-500 text-white rounded-xl shadow-md shadow-amber-500/10">
                         <i data-lucide="coffee" class="w-5.5 h-5.5"></i>
                     </div>
-                    <h1 class="text-2xl font-extrabold text-slate-900 tracking-tight">Breakfast</h1>
+                    <h1 id="app-title" class="text-2xl font-extrabold text-slate-900 tracking-tight">Breakfast</h1>
                 </div>
                 
                 <div class="flex items-center gap-1.5">
@@ -226,7 +243,7 @@
                         <span id="chat-header-status" class="text-xs text-amber-600 font-bold uppercase tracking-wider">Connected</span>
                     </div>
                 </div>
-                <button onclick="viewChatTargetPlanner()" id="btn-chat-view-planner" class="bg-amber-50 text-amber-700 font-bold px-4 py-2 rounded-xl border border-amber-100 transition active:scale-95 text-sm">
+                <button id="btn-chat-view-planner" class="bg-amber-50 text-amber-700 font-bold px-4 py-2 rounded-xl border border-amber-100 transition active:scale-95 text-sm">
                     View Planner
                 </button>
             </header>
@@ -303,7 +320,7 @@
         </div>
     </div>
 
-    <!-- Alarm Overlay Modal (Pop-up screen for Mom when alert is triggered) -->
+    <!-- Alarm Overlay Modal -->
     <div id="alarm-overlay" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/80 backdrop-blur-md transition-opacity duration-300">
         <div class="bg-white rounded-3xl max-w-sm w-full p-8 text-center shadow-2xl border border-slate-100 transform scale-100 transition-transform duration-300 animate-custom-pulse">
             <div class="w-20 h-20 bg-rose-100 text-rose-500 rounded-full flex items-center justify-center mx-auto mb-6">
@@ -323,7 +340,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, deleteUser, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-        import { getFirestore, doc, setDoc, getDoc, updateDoc, deleteDoc, onSnapshot, collection, addDoc, query, where, orderBy, arrayUnion } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { getFirestore, doc, setDoc, getDoc, updateDoc, deleteDoc, onSnapshot, collection, addDoc, query, where, orderBy, getDocs, arrayUnion } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
         // Integrated user config
         const firebaseConfig = {
@@ -343,14 +360,14 @@
         window.db = db;
         window.auth = auth;
         window.currentUserData = null;
-        window.activePlannerUid = 'mine'; // 'mine' or connected UID
+        window.activePlannerUid = 'mine'; 
         window.plannerData = {};
         window.isDataLoaded = false;
-        window.myConnections = []; // Loaded connection profiles
+        window.myConnections = []; 
         window.activeChatId = null;
         window.activeChatUnsubscribe = null;
         window.plannerUnsubscribe = null;
-        window.alertListeners = {}; // Track active listeners on connections' alarm parameters
+        window.alertListeners = {}; 
         let lastAlertTimestamp = 0;
 
         // Monitor Auth state changes
@@ -360,11 +377,16 @@
                 const userDoc = await getDoc(doc(db, "users", user.uid));
                 if (userDoc.exists()) {
                     window.currentUserData = userDoc.data();
+                    
+                    // Cache login state locally to prevent future load flickers [1]
+                    localStorage.setItem('isLoggedIn', 'true');
+                    
                     document.getElementById('profile-username-display').innerText = window.currentUserData.username;
                     document.getElementById('user-display-code').innerText = window.currentUserData.code;
                     
                     // Transition View to authenticated frame
-                    document.getElementById('auth-view').classList.add('hidden');
+                    document.getElementById('auth-view').style.display = 'none';
+                    document.getElementById('app-view').style.display = 'flex';
                     document.getElementById('app-view').classList.remove('hidden');
                     
                     // Default to My Planner
@@ -378,9 +400,10 @@
             } else {
                 // Back to login
                 window.currentUserData = null;
+                localStorage.removeItem('isLoggedIn');
                 cleanupSessionListeners();
-                document.getElementById('app-view').classList.add('hidden');
-                document.getElementById('auth-view').classList.remove('hidden');
+                document.getElementById('app-view').style.display = 'none';
+                document.getElementById('auth-view').style.display = 'flex';
             }
         });
 
@@ -548,7 +571,7 @@
 
         // Account Deletion operation
         window.deleteUserAccount = async function() {
-            if (confirm(translations[currentLang].resetConfirm)) {
+            if (confirm(translations[currentLang].deleteConfirm)) {
                 try {
                     const user = auth.currentUser;
                     if (user) {
@@ -672,24 +695,16 @@
                 await addDoc(collection(db, `chats/${window.activeChatId}/messages`), {
                     senderId: auth.currentUser.uid,
                     text: text,
-                    timestamp: Date.now() // Standard quick timestamp fallback
+                    timestamp: Date.now() 
                 });
             } catch (err) {
                 console.error("Message send failed:", err);
             }
         };
 
-        // Firebase helper helper query
-        async function getDocs(q) {
-            const querySnapshot = await getDoc(q); // dummy intercept query wrapper
-            // fallback directly to Firebase standard module imports for safety
-            const { getDocs: fireGetDocs } = await import("https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js");
-            return await fireGetDocs(q);
-        }
-
         // Generate Account IDs
         function generateUniqueAccountCode() {
-            const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // Clean character range to prevent ambiguous reads (0/O, 1/I)
+            const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; 
             let result = 'BF-';
             for (let i = 0; i < 5; i++) {
                 result += chars.charAt(Math.floor(Math.random() * chars.length));
@@ -700,6 +715,9 @@
 
     <!-- UI Logic Script -->
     <script>
+        // Secret communication channel automatically derived from your project ID
+        const ntfyTopic = "breakfast-bell-f20a8"; 
+
         const translations = {
             en: {
                 appTitle: "Breakfast",
@@ -837,8 +855,9 @@
             }
         };
 
+        const daysKeyList = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
         let currentLang = localStorage.getItem('breakfastLang') || 'en';
-        let authMode = "login"; // "login" or "signup"
+        let authMode = "login"; 
 
         function toggleAuthMode() {
             const t = translations[currentLang];
@@ -885,12 +904,10 @@
         }
 
         function switchTab(tab) {
-            // Hide all workspaces
             document.getElementById('pane-planner').classList.add('hidden');
             document.getElementById('pane-chat').classList.add('hidden');
             document.getElementById('pane-profile').classList.add('hidden');
 
-            // Reset navigation indicators
             const buttons = ['planner', 'chat', 'profile'];
             buttons.forEach(b => {
                 const btn = document.getElementById(`nav-btn-${b}`);
@@ -898,7 +915,6 @@
                 btn.classList.replace('font-extrabold', 'font-bold');
             });
 
-            // Activate chosen workspace
             document.getElementById(`pane-${tab}`).classList.remove('hidden');
             const activeBtn = document.getElementById(`nav-btn-${tab}`);
             activeBtn.classList.replace('text-slate-400', 'text-amber-500');
@@ -912,12 +928,10 @@
             document.getElementById('lbl-nav-profile').innerText = t.profile;
         }
 
-        // Switch viewed weekly planner
         function switchPlannerView(targetUid) {
             window.setupPlannerSync(targetUid);
         }
 
-        // Render connected user lists for Chats tab
         function renderChatsList() {
             const container = document.getElementById('chats-list-container');
             container.innerHTML = '';
@@ -961,10 +975,6 @@
             window.activeChatId = null;
         }
 
-        function viewChatTargetPlanner() {
-            // Managed inside window.openChatConnection dynamically
-        }
-
         async function copyAccountCode() {
             const code = document.getElementById('user-display-code').innerText;
             try {
@@ -988,7 +998,8 @@
                 document.body.setAttribute('dir', 'ltr');
             }
 
-            // Auth View translation
+            // Corrected Title Selector
+            document.getElementById('app-title').innerText = t.appTitle;
             document.getElementById('auth-title').innerText = t.appTitle;
             document.getElementById('auth-subtitle').innerText = t.authSub;
             document.getElementById('label-username').innerText = t.username;
@@ -1004,7 +1015,6 @@
                 btnToggle.innerText = t.hasAccount;
             }
 
-            // Planner Tab translation
             document.getElementById('today-heading').innerText = t.todayHeading;
             document.getElementById('weekly-heading').innerText = t.weeklyHeading;
             document.getElementById('btn-reset').innerHTML = `<i data-lucide="rotate-ccw" class="w-4 h-4"></i> ${t.resetWeek}`;
@@ -1016,7 +1026,6 @@
             document.getElementById('btn-save').innerText = t.save;
             document.getElementById('breakfast-input').placeholder = t.placeholder;
 
-            // Alert Widget translation
             document.getElementById('bell-heading').innerText = t.bellHeading;
             
             const isAlertActive = window.plannerData && window.plannerData.breakfastRequest && window.plannerData.breakfastRequest.active;
@@ -1037,12 +1046,10 @@
                 bellIcon.classList.remove('animate-swing', 'text-rose-500');
             }
 
-            // Alarm Overlay translation
             document.getElementById('alarm-title').innerText = t.alarmHeader;
             document.getElementById('alarm-text').innerText = t.alarmText;
             document.getElementById('btn-alarm-dismiss').innerText = t.alarmDismiss;
 
-            // Chat Tab translation
             document.getElementById('heading-add-connection').innerText = t.addConnection;
             document.getElementById('connection-code-input').placeholder = t.enterCode;
             document.getElementById('btn-connect-submit').innerText = t.connectBtn;
@@ -1050,7 +1057,6 @@
             document.getElementById('btn-chat-view-planner').innerText = t.viewPlanner;
             document.getElementById('chat-entry-input').placeholder = t.msgPlaceholder;
 
-            // Profile Tab translation
             document.getElementById('profile-role-tag').innerText = t.appTitle;
             document.getElementById('label-acc-code').innerText = t.connectionCode;
             document.getElementById('btn-logout').innerText = t.logout;
@@ -1119,24 +1125,19 @@
             if (!window.isDataLoaded) return;
 
             const now = Date.now();
-            
-            // Mark locally immediately as "sent" on this device
             localStorage.setItem('mySentTimestamp', now.toString());
 
-            // Instantly update UI locally
             window.plannerData.breakfastRequest = {
                 active: true,
                 timestamp: now
             };
             window.renderPlanner();
 
-            // Fire ntfy background push request concurrently
             try {
                 const isUrdu = currentLang === 'ur';
                 const title = isUrdu ? "ناشتہ تیار کریں!" : "Make Breakfast!";
                 const body = isUrdu ? "کوئی جاگ گیا ہے اور ناشتے کا انتظار کر رہا ہے۔" : "Someone is awake and waiting for breakfast.";
 
-                // Send to your Mother's subscribed PWA channel
                 fetch(`https://ntfy.sh/${ntfyTopic}`, {
                     method: 'POST',
                     body: body,
@@ -1148,7 +1149,6 @@
                 }).catch(e => console.error("Push dispatcher error:", e));
             } catch (err) {}
 
-            // Write state asynchronously to database
             await window.saveDataToBackend();
         }
 
@@ -1171,7 +1171,6 @@
             overlay.classList.add('hidden');
         }
 
-        // Custom chime generated dynamically using Web Audio API
         function playChime() {
             try {
                 const ctx = new (window.AudioContext || window.webkitAudioContext)();
@@ -1193,14 +1192,13 @@
                     osc.stop(start + duration);
                 };
                 
-                playNote(523.25, now, 0.4);      // C5
-                playNote(659.25, now + 0.15, 0.5); // E5
+                playNote(523.25, now, 0.4);      
+                playNote(659.25, now + 0.15, 0.5); 
             } catch (e) {
                 console.log("Audio play blocked by browser protocol:", e);
             }
         }
 
-        // Local Tab Alerts (Used if she already has the browser tab open)
         function triggerLocalAppAlertEffects() {
             const isUrdu = currentLang === 'ur';
             const title = isUrdu ? "ناشتہ تیار کریں!" : "Make Breakfast!";
