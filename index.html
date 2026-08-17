@@ -7,7 +7,7 @@
     <!-- Web App Manifest for PWA -->
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#f59e0b">
-    <link rel="apple-touch-icon" href="icon.svg">
+    <link class="apple-touch-icon" href="icon.svg">
     
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -83,10 +83,14 @@
                     Log In
                 </button>
                 
-                <div class="text-center">
+                <div class="text-center space-y-3">
                     <button id="btn-auth-toggle" onclick="toggleAuthMode()" class="text-sm font-bold text-amber-600 hover:text-amber-700">
                         Don't have an account? Sign Up
                     </button>
+                    <!-- Small Version Number on Login Card -->
+                    <div class="pt-2 border-t border-slate-100">
+                        <span class="text-[10px] font-extrabold text-slate-300 uppercase tracking-widest">v2.2.0</span>
+                    </div>
                 </div>
             </div>
         </div>
@@ -202,7 +206,8 @@
                         </div>
                         <div>
                             <h2 id="profile-username-display" class="text-2xl font-extrabold text-slate-900">username</h2>
-                            <p id="profile-role-tag" class="text-sm text-slate-400">Breakfast Member</p>
+                            <!-- Version Indicator under Profile Tag -->
+                            <p class="text-sm text-slate-400"><span id="profile-role-tag">Breakfast Member</span> • <span class="font-extrabold text-slate-500">v2.2.0</span></p>
                         </div>
                     </div>
 
@@ -418,6 +423,8 @@
                 logout: "Log Out",
                 deleteAccount: "Delete Account",
                 addConnection: "Add Connection",
+                enterCode: "Enter Account Code",
+                connectBtn: "Connect",
                 activeChats: "Active Chats",
                 noChats: "No connections added yet. Type an account code above to connect with Mom or Child!",
                 viewPlanner: "View Planner",
@@ -485,6 +492,8 @@
                 logout: "لاگ آؤٹ",
                 deleteAccount: "اکاؤنٹ مستقل حذف کریں",
                 addConnection: "رابطہ شامل کریں",
+                enterCode: "اکاؤنٹ کوڈ درج کریں",
+                connectBtn: "جوڑیں",
                 activeChats: "بات چیت",
                 noChats: "ابھی تک کوئی رابطہ شامل نہیں ہوا۔ امی یا بچے کے اکاؤنٹ کا کوڈ اوپر درج کر کے منسلک ہوں!",
                 viewPlanner: "منصوبہ دیکھیں",
@@ -518,29 +527,52 @@
         // Monitor Auth state changes
         onAuthStateChanged(auth, async (user) => {
             if (user) {
-                // Fetch User profile
-                const userDoc = await getDoc(doc(db, "users", user.uid));
-                if (userDoc.exists()) {
-                    window.currentUserData = userDoc.data();
-                    
-                    // Cache login state locally to prevent future load flickers [1]
+                try {
+                    // Fetch User profile safely with exception recovery [2]
+                    const userDoc = await getDoc(doc(db, "users", user.uid));
+                    if (userDoc.exists()) {
+                        window.currentUserData = userDoc.data();
+                        
+                        localStorage.setItem('isLoggedIn', 'true');
+                        
+                        document.getElementById('profile-username-display').innerText = window.currentUserData.username;
+                        document.getElementById('user-display-code').innerText = window.currentUserData.code;
+                        
+                        // Transition View to authenticated frame
+                        document.getElementById('auth-view').style.display = 'none';
+                        document.getElementById('app-view').style.display = 'flex';
+                        document.getElementById('app-view').classList.remove('hidden');
+                        
+                        // Default to My Planner
+                        window.activePlannerUid = 'mine';
+                        setupPlannerSync(user.uid);
+                        loadConnectionProfiles();
+                        listenToAllConnectionsAlerts();
+                    } else {
+                        // Create placeholder user profile doc if none exists (prevents database permission sync locks)
+                        const uniqueCode = generateUniqueAccountCode();
+                        const placeholderProfile = {
+                            uid: user.uid,
+                            username: user.email ? user.email.split('@')[0] : "User",
+                            code: uniqueCode,
+                            connections: []
+                        };
+                        await setDoc(doc(db, "users", user.uid), placeholderProfile);
+                        window.currentUserData = placeholderProfile;
+                        
+                        localStorage.setItem('isLoggedIn', 'true');
+                        setupPlannerSync(user.uid);
+                    }
+                } catch (err) {
+                    console.warn("Firestore initialization error. Falling back gracefully.", err);
+                    // Force display app in offline fail-safe state so screen never hangs [2]
                     localStorage.setItem('isLoggedIn', 'true');
-                    
-                    document.getElementById('profile-username-display').innerText = window.currentUserData.username;
-                    document.getElementById('user-display-code').innerText = window.currentUserData.code;
-                    
-                    // Transition View to authenticated frame
                     document.getElementById('auth-view').style.display = 'none';
                     document.getElementById('app-view').style.display = 'flex';
                     document.getElementById('app-view').classList.remove('hidden');
                     
-                    // Default to My Planner
-                    window.activePlannerUid = 'mine';
-                    setupPlannerSync(user.uid);
-                    loadConnectionProfiles();
-                    listenToAllConnectionsAlerts();
-                } else {
-                    await signOut(auth);
+                    showDatabaseWarningBanner(err.message);
+                    fallbackToOfflinePlanner();
                 }
             } else {
                 // Back to login
@@ -551,6 +583,28 @@
                 document.getElementById('auth-view').style.display = 'flex';
             }
         });
+
+        // Fail-safe offline plan fallback (To bypass frozen screen state on network/rules error) [2]
+        function fallbackToOfflinePlanner(err) {
+            window.isDataLoaded = true;
+            window.plannerData = JSON.parse(localStorage.getItem('breakfastPlannerData')) || { 
+                Monday: '', Tuesday: '', Wednesday: '', Thursday: '', Friday: '', Saturday: '', Sunday: '',
+                breakfastRequest: { active: false, timestamp: 0 }
+            };
+            window.renderPlanner();
+        }
+
+        // Display warnings cleanly in the UI for rapid self-diagnosing
+        function showDatabaseWarningBanner(msg) {
+            let banner = document.getElementById('db-warning-banner');
+            if (!banner) {
+                banner = document.createElement('div');
+                banner.id = 'db-warning-banner';
+                banner.className = 'bg-red-500 text-white text-xs font-bold text-center py-2 px-4 sticky top-0 z-50';
+                document.body.prepend(banner);
+            }
+            banner.innerText = `Database Connection restricted (${msg}). Please verify Firestore Email Provider & Database rules are turned on. App running in Offline local storage mode.`;
+        }
 
         // Initialize dynamic planner synchronization
         window.setupPlannerSync = function(targetUid) {
@@ -592,8 +646,7 @@
                 window.renderPlanner();
             }, (err) => {
                 console.error("Error reading from Firestore planner:", err);
-                window.isDataLoaded = true;
-                window.renderPlanner();
+                fallbackToOfflinePlanner(err);
             });
         };
 
@@ -748,7 +801,7 @@
             try {
                 // Query Firestore to search for the matching code profile
                 const q = query(collection(db, "users"), where("code", "==", targetCode));
-                const snap = await getDocs(db, q); // Corrected Direct Import lookup passing
+                const snap = await getDocs(q); // Corrected FireDocs Parameter Call
                 
                 let targetUser = null;
                 snap.forEach(doc => {
