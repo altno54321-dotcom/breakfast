@@ -7,7 +7,7 @@
     <!-- Web App Manifest for PWA -->
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#f59e0b">
-    <link rel="apple-touch-icon" href="icon.svg">
+    <link class="apple-touch-icon" href="icon.svg">
     
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -112,7 +112,7 @@
                     </button>
                     <!-- Small Version Number on Login Card -->
                     <div class="pt-2 border-t border-slate-100">
-                        <span class="text-[10px] font-extrabold text-slate-300 uppercase tracking-widest">v2.3.0</span>
+                        <span class="text-[10px] font-extrabold text-slate-300 uppercase tracking-widest">v2.4.0</span>
                     </div>
                 </div>
             </div>
@@ -229,7 +229,7 @@
                         </div>
                         <div>
                             <h2 id="profile-username-display" class="text-2xl font-extrabold text-slate-900">username</h2>
-                            <p class="text-sm text-slate-400"><span id="profile-role-tag">Breakfast Member</span> • <span class="font-extrabold text-slate-500">v2.3.0</span></p>
+                            <p class="text-sm text-slate-400"><span id="profile-role-tag">Breakfast Member</span> • <span class="font-extrabold text-slate-500">v2.4.0</span></p>
                         </div>
                     </div>
 
@@ -258,7 +258,7 @@
         </main>
 
         <!-- Dynamic Fullscreen Active Chatbox View -->
-        <div id="chat-conversation-container" class="hidden fixed inset-0 z-40 bg-slate-50 flex flex-col">
+        <div id="chat-conversation-container" class="hidden fixed inset-0 z-40 bg-slate-50 flex flex-col animate-bottom-sheet">
             <!-- Chat Box Header -->
             <header class="bg-white border-b border-slate-100 py-3.5 px-4 sticky top-0 z-30 shadow-sm flex items-center justify-between">
                 <div class="flex items-center gap-2">
@@ -275,8 +275,14 @@
                 </button>
             </header>
 
+            <!-- Chat Active Editing Indicator Banner -->
+            <div id="chat-editing-banner" class="hidden bg-amber-50 border-b border-amber-100 px-4 py-2 text-xs flex justify-between items-center text-amber-800">
+                <span id="chat-editing-banner-text" class="font-bold truncate">Editing message...</span>
+                <button onclick="cancelActiveMessageEdit()" class="text-amber-900 hover:text-red-500 font-extrabold px-2 py-1">Cancel</button>
+            </div>
+
             <!-- Conversation messages panel -->
-            <div id="chat-messages-flow" class="flex-grow p-4 overflow-y-auto space-y-3">
+            <div id="chat-messages-flow" class="flex-grow p-4 overflow-y-auto space-y-4">
                 <!-- Conversation threads load here -->
             </div>
 
@@ -396,155 +402,11 @@
         window.myConnections = []; 
         window.activeChatId = null;
         window.activeChatUnsubscribe = null;
+        window.activeChatRecipientCode = null; // Target code to send real-time chat push notifications
+        window.editingMessageId = null; // State holder for message editing
         window.plannerUnsubscribe = null;
         window.alertListeners = {}; 
-        let lastAlertTimestamp = 0;
-
-        // Translations Object
-        const translations = {
-            en: {
-                appTitle: "Breakfast",
-                appSubtitle: "Weekly morning fuel planner",
-                todayHeading: "Today's Breakfast",
-                noBreakfastToday: "No plan set for today",
-                changeToday: "Change Today",
-                weeklyHeading: "Weekly Plan",
-                resetWeek: "Reset Week",
-                resetConfirm: "Are you sure you want to clear your planned breakfasts for the entire week?",
-                noMeal: "Tap to plan...",
-                addBreakfast: "Add Breakfast",
-                edit: "Edit",
-                clear: "Clear",
-                customName: "Custom Breakfast Name",
-                presets: "Quick Presets",
-                save: "Save Plan",
-                cancel: "Cancel",
-                planTitle: "Plan for ",
-                placeholder: "e.g., Avocado Toast",
-                todayLabel: "Today",
-                bellHeading: "Wake Up Alert",
-                bellStatus: "Tell Mom you are awake",
-                bellBtn: "Ask Mom",
-                bellSent: "Sent!",
-                alarmHeader: "Breakfast Alert!",
-                alarmText: "Someone is awake and requested breakfast.",
-                alarmDismiss: "I'm on it!",
-                
-                // Account Additions
-                authHeading: "Breakfast Account",
-                authSub: "Create an account or log in to manage plans",
-                username: "Username",
-                password: "Password",
-                login: "Log In",
-                signUp: "Sign Up",
-                noAccount: "Don't have an account? Sign Up",
-                hasAccount: "Already have an account? Log In",
-                profile: "Profile",
-                chat: "Chat",
-                planner: "Planner",
-                logout: "Log Out",
-                deleteAccount: "Delete Account",
-                addConnection: "Add Connection",
-                enterCode: "Enter Account Code",
-                connectBtn: "Connect",
-                activeChats: "Active Chats",
-                noChats: "No connections added yet. Type an account code above to connect with Mom or Child!",
-                viewPlanner: "View Planner",
-                msgPlaceholder: "Type message...",
-                viewingPlannerLabel: "Viewing Planner:",
-                deleteConfirm: "Are you sure you want to permanently delete your account?",
-                days: {
-                    Monday: "Monday",
-                    Tuesday: "Tuesday",
-                    Wednesday: "Wednesday",
-                    Thursday: "Thursday",
-                    Friday: "Friday",
-                    Saturday: "Saturday",
-                    Sunday: "Sunday"
-                },
-                presetsList: [
-                    { emoji: '🍳', name: 'Eggs & Toast' },
-                    { emoji: '🥞', name: 'Fluffy Pancakes' },
-                    { emoji: '🥣', name: 'Oatmeal Bowl' },
-                    { emoji: '🥤', name: 'Fruit Smoothie' },
-                    { emoji: '🥑', name: 'Avocado Toast' },
-                    { emoji: '🧇', name: 'Belgian Waffles' }
-                ]
-            },
-            ur: {
-                appTitle: "ناشتہ",
-                appSubtitle: "ہفتہ وار ناشتے کا منصوبہ",
-                todayHeading: "آج کا ناشتہ",
-                noBreakfastToday: "آج کا کوئی منصوبہ نہیں ہے",
-                changeToday: "آج کا تبدیل کریں",
-                weeklyHeading: "پورے ہفتے کا منصوبہ",
-                resetWeek: "ہفتہ ری سیٹ کریں",
-                resetConfirm: "کیا آپ واقعی پورا ہفتہ صاف کرنا چاہتے ہیں؟",
-                noMeal: "منصوبہ بندی کریں...",
-                addBreakfast: "ناشتہ شامل کریں",
-                edit: "تبدیل کریں",
-                clear: "صاف کریں",
-                customName: "اپنی مرضی کا ناشتہ لکھیں",
-                presets: "جلدی سے منتخب کریں",
-                save: "محفوظ کریں",
-                cancel: "منسوخ کریں",
-                planTitle: "منصوبہ برائے ",
-                placeholder: "مثال کے طور پر: انڈے اور ٹوسٹ",
-                todayLabel: "آج",
-                bellHeading: "جاگنے کی اطلاع",
-                bellStatus: "امی کو بتائیں کہ آپ جاگ گئے ہیں",
-                bellBtn: "ناشتہ تیار کریں",
-                bellSent: "بھیج دیا!",
-                alarmHeader: "ناشتے کا الرٹ!",
-                alarmText: "کوئی جاگ گیا ہے اور ناشتے کی فرمائش کی ہے۔",
-                alarmDismiss: "ٹھیک ہے، میں بناتی ہوں",
-
-                // Account Additions
-                authHeading: "ناشتہ اکاؤنٹ",
-                authSub: "اپنے ہفتہ وار منصوبوں کے لیے اکاؤنٹ بنائیں یا لاگ ان کریں",
-                username: "صارف کا نام",
-                password: "پاس ورڈ",
-                login: "لاگ ان کریں",
-                signUp: "سائن اپ کریں",
-                noAccount: "اکاؤنٹ نہیں ہے؟ سائن اپ کریں",
-                hasAccount: "پہلے سے اکاؤنٹ ہے؟ لاگ ان کریں",
-                profile: "پروفائل",
-                chat: "بات چیت",
-                planner: "منصوبہ",
-                logout: "لاگ آؤٹ",
-                deleteAccount: "اکاؤنٹ مستقل حذف کریں",
-                addConnection: "رابطہ شامل کریں",
-                enterCode: "اکاؤنٹ کوڈ درج کریں",
-                connectBtn: "جوڑیں",
-                activeChats: "بات چیت",
-                noChats: "ابھی تک کوئی رابطہ شامل نہیں ہوا۔ امی یا بچے کے اکاؤنٹ کا کوڈ اوپر درج کر کے منسلک ہوں!",
-                viewPlanner: "منصوبہ دیکھیں",
-                msgPlaceholder: "پیغام لکھیں...",
-                viewingPlannerLabel: "منصوبہ دیکھیں برائے:",
-                deleteConfirm: "کیا آپ واقعی مستقل طور پر اپنا اکاؤنٹ حذف کرنا چاہتے ہیں؟",
-                days: {
-                    Monday: "پیر",
-                    Tuesday: "منگل",
-                    Wednesday: "بدھ",
-                    Thursday: "جمعرات",
-                    Friday: "جمعہ",
-                    Saturday: "ہفتہ",
-                    Sunday: "اتوار"
-                },
-                presetsList: [
-                    { emoji: '🍳', name: 'انڈے اور ٹوسٹ' },
-                    { emoji: '🥞', name: 'پین کیکس' },
-                    { emoji: '🥣', name: 'دلیہ' },
-                    { emoji: '🥤', name: 'فروٹ اسموتھی' },
-                    { emoji: '🥑', name: 'ایواکاڈو ٹوسٹ' },
-                    { emoji: '🧇', name: 'وافلز' }
-                ]
-            }
-        };
-
-        const daysKeyList = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
-        let currentLang = localStorage.getItem('breakfastLang') || 'en';
-        let authMode = "login"; 
+        window.lastAlertTimestamps = {}; // Tracks alert timestamps individually per connected UID to stop ghost triggers
 
         // Monitor Auth state changes
         onAuthStateChanged(auth, async (user) => {
@@ -657,9 +519,9 @@
                             window.hideAlarmModal();
                         } else {
                             window.showAlarmModal();
-                            if (req.timestamp !== lastAlertTimestamp) {
-                                lastAlertTimestamp = req.timestamp;
-                                triggerLocalAppAlertEffects();
+                            if (req.timestamp !== window.lastAlertTimestamps[finalUid]) {
+                                window.lastAlertTimestamps[finalUid] = req.timestamp;
+                                window.triggerLocalAppAlertEffects();
                             }
                         }
                     } else {
@@ -727,11 +589,10 @@
                         const mySentTimestamp = parseInt(localStorage.getItem('mySentTimestamp') || '0');
 
                         if (req && req.active && req.timestamp !== mySentTimestamp) {
-                            // Show overlay because a connected user sent an alert
-                            window.showAlarmModal();
-                            if (req.timestamp !== lastAlertTimestamp) {
-                                lastAlertTimestamp = req.timestamp;
-                                triggerLocalAppAlertEffects();
+                            if (req.timestamp !== window.lastAlertTimestamps[uid]) {
+                                window.lastAlertTimestamps[uid] = req.timestamp;
+                                window.showAlarmModal();
+                                window.triggerLocalAppAlertEffects();
                             }
                         }
                     }
@@ -865,6 +726,10 @@
             const chatId = currentUid < targetUid ? `${currentUid}_${targetUid}` : `${targetUid}_${currentUid}`;
             window.activeChatId = chatId;
 
+            // Find target recipient code to send chat lock-screen notifications
+            const targetProfile = window.myConnections.find(c => c.uid === targetUid);
+            window.activeChatRecipientCode = targetProfile ? targetProfile.code : null;
+
             document.getElementById('chat-header-name').innerText = targetUsername;
             document.getElementById('chat-messages-flow').innerHTML = '';
             document.getElementById('chat-conversation-container').classList.remove('hidden');
@@ -891,24 +756,85 @@
                 
                 snapshot.forEach(msgDoc => {
                     const data = msgDoc.data();
+                    const msgId = msgDoc.id;
                     const isMe = data.senderId === currentUid;
                     
+                    // Mark received unread messages as Seen in the database
+                    if (!isMe && !data.isSeen) {
+                        updateDoc(doc(db, `chats/${chatId}/messages`, msgId), { isSeen: true }).catch(() => {});
+                    }
+
                     const msgElement = document.createElement('div');
-                    msgElement.className = `flex ${isMe ? 'justify-end' : 'justify-start'}`;
+                    msgElement.className = `flex flex-col ${isMe ? 'items-end' : 'items-start'}`;
+                    
                     msgElement.innerHTML = `
-                        <div class="max-w-[80%] rounded-2xl px-4 py-3 text-base font-bold shadow-sm ${isMe ? 'bg-amber-500 text-white rounded-tr-none' : 'bg-white text-slate-800 rounded-tl-none border border-slate-100'}">
-                            ${data.text}
+                        <!-- Bubble & Quick Actions -->
+                        <div class="flex items-center gap-1.5 max-w-[85%] ${isMe ? 'flex-row' : 'flex-row-reverse'}">
+                            <!-- Show Delete & Edit on your own messages -->
+                            ${isMe ? `
+                                <div class="flex items-center gap-1 text-slate-300">
+                                    <button onclick="editMessagePrompt('${msgId}', '${escapeQuote(data.text)}')" class="p-1 hover:text-amber-500 rounded" title="Edit">
+                                        <i data-lucide="edit-2" class="w-4 h-4"></i>
+                                    </button>
+                                    <button onclick="deleteChatMessage('${msgId}')" class="p-1 hover:text-red-500 rounded" title="Delete">
+                                        <i data-lucide="trash-2" class="w-4 h-4"></i>
+                                    </button>
+                                </div>
+                            ` : ''}
+
+                            <!-- Actual Text Bubble -->
+                            <div class="rounded-2xl px-4 py-2.5 text-base font-bold shadow-sm ${isMe ? 'bg-amber-500 text-white rounded-tr-none' : 'bg-white text-slate-800 rounded-tl-none border border-slate-100'}">
+                                ${data.text}
+                            </div>
                         </div>
+
+                        <!-- Metadata Row (Checkmarks for Sent/Seen status) -->
+                        ${isMe ? `
+                            <div class="flex items-center gap-1 text-[10px] text-slate-400 px-1 mt-0.5 font-bold">
+                                <span>${data.isSeen ? 'Seen ✓✓' : 'Sent ✓'}</span>
+                            </div>
+                        ` : ''}
                     `;
                     flow.appendChild(msgElement);
                 });
                 
+                lucide.createIcons();
                 // Smooth scroll to bottom
                 flow.scrollTop = flow.scrollHeight;
             });
         };
 
-        // Dispatch a Message
+        // Delete a Chat Message
+        window.deleteChatMessage = async function(msgId) {
+            if (confirm(currentLang === 'ur' ? 'کیا آپ اس پیغام کو حذف کرنا چاہتے ہیں؟' : 'Are you sure you want to delete this message?')) {
+                try {
+                    await deleteDoc(doc(db, `chats/${window.activeChatId}/messages`, msgId));
+                } catch (e) {
+                    console.error("Failed to delete message: ", e);
+                }
+            }
+        };
+
+        // Open edit interface loader
+        window.editMessagePrompt = function(msgId, text) {
+            window.editingMessageId = msgId;
+            const input = document.getElementById('chat-entry-input');
+            input.value = text;
+            input.focus();
+
+            // Toggle Edit visual Banner
+            document.getElementById('chat-editing-banner-text').innerText = `Editing: "${text}"`;
+            document.getElementById('chat-editing-banner').classList.remove('hidden');
+        };
+
+        // Cancel edit mode
+        window.cancelActiveMessageEdit = function() {
+            window.editingMessageId = null;
+            document.getElementById('chat-entry-input').value = '';
+            document.getElementById('chat-editing-banner').classList.add('hidden');
+        };
+
+        // Dispatch a Message (Handles both direct sends and edits)
         window.sendActiveChatMessage = async function() {
             const input = document.getElementById('chat-entry-input');
             const text = input.value.trim();
@@ -916,11 +842,39 @@
 
             try {
                 input.value = '';
-                await addDoc(collection(db, `chats/${window.activeChatId}/messages`), {
-                    senderId: auth.currentUser.uid,
-                    text: text,
-                    timestamp: Date.now() 
-                });
+                
+                if (window.editingMessageId) {
+                    // Update existing document if we are in Edit Mode
+                    const tempId = window.editingMessageId;
+                    window.cancelActiveMessageEdit(); // Reset state
+                    await updateDoc(doc(db, `chats/${window.activeChatId}/messages`, tempId), {
+                        text: text
+                    });
+                } else {
+                    // Add new document if standard Send Mode
+                    await addDoc(collection(db, `chats/${window.activeChatId}/messages`), {
+                        senderId: auth.currentUser.uid,
+                        text: text,
+                        isSeen: false,
+                        timestamp: Date.now() 
+                    });
+
+                    // Trigger external system-level lock-screen popup notification on their device using ntfy
+                    if (window.activeChatRecipientCode) {
+                        const targetNtfyChannel = `breakfast-msg-${window.activeChatRecipientCode}`;
+                        const senderName = window.currentUserData.username;
+                        
+                        fetch(`https://ntfy.sh/${targetNtfyChannel}`, {
+                            method: 'POST',
+                            body: `${senderName}: "${text}"`,
+                            headers: {
+                                'Title': 'New Message! 💬',
+                                'Priority': 'high',
+                                'Tags': 'speech_balloon,incoming_envelope'
+                            }
+                        }).catch(e => console.error("Message push failed:", e));
+                    }
+                }
             } catch (err) {
                 console.error("Message send failed:", err);
             }
@@ -997,7 +951,7 @@
             return result;
         }
 
-        // Alarm Modal Controllers (Explicitly restored and bound globally to window)
+        // Alarm Modal Controllers 
         window.showAlarmModal = function() {
             const overlay = document.getElementById('alarm-overlay');
             if (overlay) overlay.classList.remove('hidden');
@@ -1006,6 +960,51 @@
         window.hideAlarmModal = function() {
             const overlay = document.getElementById('alarm-overlay');
             if (overlay) overlay.classList.add('hidden');
+        }
+
+        // Custom chime generated dynamically using Web Audio API
+        function playChime() {
+            try {
+                const ctx = new (window.AudioContext || window.webkitAudioContext)();
+                const now = ctx.currentTime;
+                
+                const playNote = (freq, start, duration) => {
+                    const osc = ctx.createOscillator();
+                    const gain = ctx.createGain();
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(freq, start);
+                    
+                    gain.gain.setValueAtTime(0, start);
+                    gain.gain.linearRampToValueAtTime(0.3, start + 0.05);
+                    gain.gain.exponentialRampToValueAtTime(0.01, start + duration);
+                    
+                    osc.connect(gain);
+                    gain.connect(ctx.destination);
+                    osc.start(start);
+                    osc.stop(start + duration);
+                };
+                
+                playNote(523.25, now, 0.4);      
+                playNote(659.25, now + 0.15, 0.5); 
+            } catch (e) {
+                console.log("Audio play blocked by browser protocol:", e);
+            }
+        }
+
+        // Local Tab Alerts (Used if she already has the browser tab open) [2]
+        window.triggerLocalAppAlertEffects = function() {
+            const isUrdu = currentLang === 'ur';
+            const title = isUrdu ? "ناشتہ تیار کریں!" : "Make Breakfast!";
+            const body = isUrdu ? "کوئی جاگ گیا ہے اور ناشتے کے لیے تیار ہے۔" : "Someone is awake and requested breakfast.";
+
+            if ("Notification" in window && Notification.permission === "granted") {
+                new Notification(title, {
+                    body: body,
+                    icon: "icon.svg"
+                });
+            }
+
+            playChime();
         }
 
         // --- GLOBAL EXPORTS FOR HTML COMPATIBILITY ---
@@ -1379,6 +1378,11 @@
                     await window.saveDataToBackend();
                 }
             }
+        }
+
+        // Helper string quoting tool
+        function escapeQuote(str) {
+            return str.replace(/'/g, "\\'");
         }
 
         // Safe Icon Rendering to prevent latency-crashing
