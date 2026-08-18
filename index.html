@@ -7,7 +7,7 @@
     <!-- Web App Manifest for PWA -->
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#f59e0b">
-    <link class="apple-touch-icon" href="icon.svg">
+    <link rel="apple-touch-icon" href="icon.svg">
     
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -112,7 +112,7 @@
                     </button>
                     <!-- Small Version Number on Login Card -->
                     <div class="pt-2 border-t border-slate-100">
-                        <span class="text-[10px] font-extrabold text-slate-300 uppercase tracking-widest">v2.4.0</span>
+                        <span class="text-[10px] font-extrabold text-slate-300 uppercase tracking-widest">v2.5.0</span>
                     </div>
                 </div>
             </div>
@@ -229,7 +229,7 @@
                         </div>
                         <div>
                             <h2 id="profile-username-display" class="text-2xl font-extrabold text-slate-900">username</h2>
-                            <p class="text-sm text-slate-400"><span id="profile-role-tag">Breakfast Member</span> • <span class="font-extrabold text-slate-500">v2.4.0</span></p>
+                            <p class="text-sm text-slate-400"><span id="profile-role-tag">Breakfast Member</span> • <span class="font-extrabold text-slate-500">v2.5.0</span></p>
                         </div>
                     </div>
 
@@ -258,7 +258,7 @@
         </main>
 
         <!-- Dynamic Fullscreen Active Chatbox View -->
-        <div id="chat-conversation-container" class="hidden fixed inset-0 z-40 bg-slate-50 flex flex-col animate-bottom-sheet">
+        <div id="chat-conversation-container" class="hidden fixed inset-0 z-40 bg-slate-50 flex flex-col">
             <!-- Chat Box Header -->
             <header class="bg-white border-b border-slate-100 py-3.5 px-4 sticky top-0 z-30 shadow-sm flex items-center justify-between">
                 <div class="flex items-center gap-2">
@@ -402,11 +402,13 @@
         window.myConnections = []; 
         window.activeChatId = null;
         window.activeChatUnsubscribe = null;
-        window.activeChatRecipientCode = null; // Target code to send real-time chat push notifications
-        window.editingMessageId = null; // State holder for message editing
+        window.activeChatRecipientCode = null; 
+        window.editingMessageId = null; 
         window.plannerUnsubscribe = null;
         window.alertListeners = {}; 
         window.lastAlertTimestamps = {}; // Tracks alert timestamps individually per connected UID to stop ghost triggers
+        window.activeAlertUid = null; // Tracks exactly who triggered the current wake up alert to safely dismiss it
+        const appStartupTime = Date.now(); // Ignore historical alerts older than this moment
 
         // Monitor Auth state changes
         onAuthStateChanged(auth, async (user) => {
@@ -518,10 +520,14 @@
                         if (req.timestamp === mySentTimestamp) {
                             window.hideAlarmModal();
                         } else {
-                            window.showAlarmModal();
-                            if (req.timestamp !== window.lastAlertTimestamps[finalUid]) {
-                                window.lastAlertTimestamps[finalUid] = req.timestamp;
-                                window.triggerLocalAppAlertEffects();
+                            // Only trigger visual alert / sound if the alert is newer than our startup timestamp
+                            if (req.timestamp > appStartupTime - 15000) {
+                                window.activeAlertUid = finalUid; // Map current active UID
+                                window.showAlarmModal();
+                                if (req.timestamp !== window.lastAlertTimestamps[finalUid]) {
+                                    window.lastAlertTimestamps[finalUid] = req.timestamp;
+                                    window.triggerLocalAppAlertEffects();
+                                }
                             }
                         }
                     } else {
@@ -589,10 +595,14 @@
                         const mySentTimestamp = parseInt(localStorage.getItem('mySentTimestamp') || '0');
 
                         if (req && req.active && req.timestamp !== mySentTimestamp) {
-                            if (req.timestamp !== window.lastAlertTimestamps[uid]) {
-                                window.lastAlertTimestamps[uid] = req.timestamp;
-                                window.showAlarmModal();
-                                window.triggerLocalAppAlertEffects();
+                            // Only trigger visual alert / sound if the alert is newer than our startup timestamp
+                            if (req.timestamp > appStartupTime - 15000) {
+                                if (req.timestamp !== window.lastAlertTimestamps[uid]) {
+                                    window.lastAlertTimestamps[uid] = req.timestamp;
+                                    window.activeAlertUid = uid; // Track whose alert is being displayed
+                                    window.showAlarmModal();
+                                    window.triggerLocalAppAlertEffects();
+                                }
                             }
                         }
                     }
@@ -887,6 +897,7 @@
             const now = Date.now();
             localStorage.setItem('mySentTimestamp', now.toString());
 
+            // Instantly update UI locally
             window.plannerData.breakfastRequest = {
                 active: true,
                 timestamp: now
@@ -913,13 +924,25 @@
             await window.saveDataToBackend();
         }
 
+        // Surgical alert dismisser (Target clears alert on exact child's profile [2])
         window.dismissWakeUpAlert = async function() {
             if (!window.isDataLoaded) return;
-            window.plannerData.breakfastRequest = {
-                active: false,
-                timestamp: Date.now()
-            };
-            await window.saveDataToBackend();
+            
+            // Choose exact target UID who dispatched the alert (Default to own UID fallback)
+            const targetUid = window.activeAlertUid || auth.currentUser.uid;
+            
+            try {
+                // Surgically update the alert field to inactive [2]
+                await updateDoc(doc(db, "planners", targetUid), {
+                    "breakfastRequest.active": false,
+                    "breakfastRequest.timestamp": Date.now()
+                });
+                
+                window.hideAlarmModal();
+                window.activeAlertUid = null;
+            } catch (err) {
+                console.error("Failed to dismiss alert: ", err);
+            }
         }
 
         // Global save trigger
@@ -951,7 +974,7 @@
             return result;
         }
 
-        // Alarm Modal Controllers 
+        // Alarm Modal Controllers (Explicitly restored and bound globally to window) [2]
         window.showAlarmModal = function() {
             const overlay = document.getElementById('alarm-overlay');
             if (overlay) overlay.classList.remove('hidden');
