@@ -112,7 +112,7 @@
                     </button>
                     <!-- Small Version Number on Login Card -->
                     <div class="pt-2 border-t border-slate-100">
-                        <span class="text-[10px] font-extrabold text-slate-300 uppercase tracking-widest">v2.5.0</span>
+                        <span class="text-[10px] font-extrabold text-slate-300 uppercase tracking-widest">v2.6.0</span>
                     </div>
                 </div>
             </div>
@@ -229,7 +229,7 @@
                         </div>
                         <div>
                             <h2 id="profile-username-display" class="text-2xl font-extrabold text-slate-900">username</h2>
-                            <p class="text-sm text-slate-400"><span id="profile-role-tag">Breakfast Member</span> • <span class="font-extrabold text-slate-500">v2.5.0</span></p>
+                            <p class="text-sm text-slate-400"><span id="profile-role-tag">Breakfast Member</span> • <span class="font-extrabold text-slate-500">v2.6.0</span></p>
                         </div>
                     </div>
 
@@ -406,9 +406,153 @@
         window.editingMessageId = null; 
         window.plannerUnsubscribe = null;
         window.alertListeners = {}; 
-        window.lastAlertTimestamps = {}; // Tracks alert timestamps individually per connected UID to stop ghost triggers
-        window.activeAlertUid = null; // Tracks exactly who triggered the current wake up alert to safely dismiss it
-        const appStartupTime = Date.now(); // Ignore historical alerts older than this moment
+        window.lastAlertTimestamps = {}; 
+        window.activeAlertUid = null; 
+        const appStartupTime = Date.now(); 
+
+        // --- ENFORCE GLOBAL SCOPING TO PREVENT IOS SAFARI REFERENCE ERRORS [2] ---
+        window.currentLang = localStorage.getItem('breakfastLang') || 'en';
+        window.translations = {
+            en: {
+                appTitle: "Breakfast",
+                appSubtitle: "Weekly morning fuel planner",
+                todayHeading: "Today's Breakfast",
+                noBreakfastToday: "No plan set for today",
+                changeToday: "Change Today",
+                weeklyHeading: "Weekly Plan",
+                resetWeek: "Reset Week",
+                resetConfirm: "Are you sure you want to clear your planned breakfasts for the entire week?",
+                noMeal: "Tap to plan...",
+                addBreakfast: "Add Breakfast",
+                edit: "Edit",
+                clear: "Clear",
+                customName: "Custom Breakfast Name",
+                presets: "Quick Presets",
+                save: "Save Plan",
+                cancel: "Cancel",
+                planTitle: "Plan for ",
+                placeholder: "e.g., Avocado Toast",
+                todayLabel: "Today",
+                bellHeading: "Wake Up Alert",
+                bellStatus: "Tell Mom you are awake",
+                bellBtn: "Ask Mom",
+                bellSent: "Sent!",
+                alarmHeader: "Breakfast Alert!",
+                alarmText: "Someone is awake and requested breakfast.",
+                alarmDismiss: "I'm on it!",
+                
+                // Account Additions
+                authHeading: "Breakfast Account",
+                authSub: "Create an account or log in to manage plans",
+                username: "Username",
+                password: "Password",
+                login: "Log In",
+                signUp: "Sign Up",
+                noAccount: "Don't have an account? Sign Up",
+                hasAccount: "Already have an account? Log In",
+                profile: "Profile",
+                chat: "Chat",
+                planner: "Planner",
+                logout: "Log Out",
+                deleteAccount: "Delete Account",
+                addConnection: "Add Connection",
+                enterCode: "Enter Account Code",
+                connectBtn: "Connect",
+                activeChats: "Active Chats",
+                noChats: "No connections added yet. Type an account code above to connect with Mom or Child!",
+                viewPlanner: "View Planner",
+                msgPlaceholder: "Type message...",
+                viewingPlannerLabel: "Viewing Planner:",
+                deleteConfirm: "Are you sure you want to permanently delete your account?",
+                days: {
+                    Monday: "Monday",
+                    Tuesday: "Tuesday",
+                    Wednesday: "Wednesday",
+                    Thursday: "Thursday",
+                    Friday: "Friday",
+                    Saturday: "Saturday",
+                    Sunday: "Sunday"
+                },
+                presetsList: [
+                    { emoji: '🍳', name: 'Eggs & Toast' },
+                    { emoji: '🥞', name: 'Fluffy Pancakes' },
+                    { emoji: '🥣', name: 'Oatmeal Bowl' },
+                    { emoji: '🥤', name: 'Fruit Smoothie' },
+                    { emoji: '🥑', name: 'Avocado Toast' },
+                    { emoji: '🧇', name: 'Belgian Waffles' }
+                ]
+            },
+            ur: {
+                appTitle: "ناشتہ",
+                appSubtitle: "ہفتہ وار ناشتے کا منصوبہ",
+                todayHeading: "آج کا ناشتہ",
+                noBreakfastToday: "آج کا کوئی منصوبہ نہیں ہے",
+                changeToday: "آج کا تبدیل کریں",
+                weeklyHeading: "پورے ہفتے کا منصوبہ",
+                resetWeek: "ہفتہ ری سیٹ کریں",
+                resetConfirm: "کیا آپ واقعی پورا ہفتہ صاف کرنا چاہتے ہیں؟",
+                noMeal: "منصوبہ بندی کریں...",
+                addBreakfast: "ناشتہ شامل کریں",
+                edit: "تبدیل کریں",
+                clear: "صاف کریں",
+                customName: "اپنی مرضی کا ناشتہ لکھیں",
+                presets: "جلدی سے منتخب کریں",
+                save: "محفوظ کریں",
+                cancel: "منسوخ کریں",
+                planTitle: "منصوبہ برائے ",
+                placeholder: "مثال کے طور پر: انڈے اور ٹوسٹ",
+                todayLabel: "آج",
+                bellHeading: "جاگنے کی اطلاع",
+                bellStatus: "امی کو بتائیں کہ آپ جاگ گئے ہیں",
+                bellBtn: "ناشتہ تیار کریں",
+                bellSent: "بھیج دیا!",
+                alarmHeader: "ناشتے کا الرٹ!",
+                alarmText: "کوئی جاگ گیا ہے اور ناشتے کی فرمائش کی ہے۔",
+                alarmDismiss: "ٹھیک ہے، میں بناتی ہوں",
+
+                // Account Additions
+                authHeading: "ناشتہ اکاؤنٹ",
+                authSub: "اپنے ہفتہ وار منصوبوں کے لیے اکاؤنٹ بنائیں یا لاگ ان کریں",
+                username: "صارف کا نام",
+                password: "پاس ورڈ",
+                login: "لاگ ان کریں",
+                signUp: "سائن اپ کریں",
+                noAccount: "اکاؤنٹ نہیں ہے؟ سائن اپ کریں",
+                hasAccount: "پہلے سے اکاؤنٹ ہے؟ لاگ ان کریں",
+                profile: "پروفائل",
+                chat: "بات چیت",
+                planner: "منصوبہ",
+                logout: "لاگ آؤٹ",
+                deleteAccount: "اکاؤنٹ مستقل حذف کریں",
+                addConnection: "رابطہ شامل کریں",
+                activeChats: "بات چیت",
+                noChats: "ابھی تک کوئی رابطہ شامل نہیں ہوا۔ امی یا بچے کے اکاؤنٹ کا کوڈ اوپر درج کر کے منسلک ہوں!",
+                viewPlanner: "منصوبہ دیکھیں",
+                msgPlaceholder: "پیغام لکھیں...",
+                viewingPlannerLabel: "منصوبہ دیکھیں برائے:",
+                deleteConfirm: "کیا آپ واقعی مستقل طور پر اپنا اکاؤنٹ حذف کرنا چاہتے ہیں؟",
+                days: {
+                    Monday: "پیر",
+                    Tuesday: "منگل",
+                    Wednesday: "بدھ",
+                    Thursday: "جمعرات",
+                    Friday: "جمعہ",
+                    Saturday: "ہفتہ",
+                    Sunday: "اتوار"
+                },
+                presetsList: [
+                    { emoji: '🍳', name: 'انڈے اور ٹوسٹ' },
+                    { emoji: '🥞', name: 'پین کیکس' },
+                    { emoji: '🥣', name: 'دلیہ' },
+                    { emoji: '🥤', name: 'فروٹ اسموتھی' },
+                    { emoji: '🥑', name: 'ایواکاڈو ٹوسٹ' },
+                    { emoji: '🧇', name: 'وافلز' }
+                ]
+            }
+        };
+
+        const daysKeyList = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+        let authMode = "login"; 
 
         // Monitor Auth state changes
         onAuthStateChanged(auth, async (user) => {
@@ -553,7 +697,7 @@
             const selector = document.getElementById('planner-view-selector');
             
             // Reset dropdown with only "My Planner"
-            selector.innerHTML = `<option value="mine">${currentLang === 'ur' ? 'میرا منصوبہ' : 'My Planner'}</option>`;
+            selector.innerHTML = `<option value="mine">${window.currentLang === 'ur' ? 'میرا منصوبہ' : 'My Planner'}</option>`;
 
             for (const uid of connectionsList) {
                 const docSnap = await getDoc(doc(db, "users", uid));
@@ -659,14 +803,14 @@
 
         // LogOut operation
         window.logOutUser = async function() {
-            if (confirm(currentLang === 'ur' ? 'کیا آپ لاگ آؤٹ کرنا چاہتے ہیں؟' : 'Are you sure you want to log out?')) {
+            if (confirm(window.currentLang === 'ur' ? 'کیا آپ لاگ آؤٹ کرنا چاہتے ہیں؟' : 'Are you sure you want to log out?')) {
                 await signOut(auth);
             }
         };
 
         // Account Deletion operation
         window.deleteUserAccount = async function() {
-            if (confirm(translations[currentLang].deleteConfirm)) {
+            if (confirm(window.translations[window.currentLang].deleteConfirm)) {
                 try {
                     const user = auth.currentUser;
                     if (user) {
@@ -691,7 +835,7 @@
             if (!targetCode) return;
 
             if (targetCode === window.currentUserData.code) {
-                alert(currentLang === 'ur' ? "آپ اپنے اکاؤنٹ کو خود سے نہیں جوڑ سکتے" : "You cannot connect your own account.");
+                alert(window.currentLang === 'ur' ? "آپ اپنے اکاؤنٹ کو خود سے نہیں جوڑ سکتے" : "You cannot connect your own account.");
                 return;
             }
 
@@ -719,9 +863,9 @@
                     inputField.value = '';
                     await loadConnectionProfiles();
                     listenToAllConnectionsAlerts();
-                    alert(currentLang === 'ur' ? "رابطہ کامیابی سے شامل ہو گیا!" : "Connected successfully!");
+                    alert(window.currentLang === 'ur' ? "رابطہ کامیابی سے شامل ہو گیا!" : "Connected successfully!");
                 } else {
-                    alert(currentLang === 'ur' ? "غلط اکاؤنٹ کوڈ" : "Invalid account code. Please double check.");
+                    alert(window.currentLang === 'ur' ? "غلط اکاؤنٹ کوڈ" : "Invalid account code. Please double check.");
                 }
             } catch (err) {
                 console.error("Connection failed: ", err);
@@ -816,7 +960,7 @@
 
         // Delete a Chat Message
         window.deleteChatMessage = async function(msgId) {
-            if (confirm(currentLang === 'ur' ? 'کیا آپ اس پیغام کو حذف کرنا چاہتے ہیں؟' : 'Are you sure you want to delete this message?')) {
+            if (confirm(window.currentLang === 'ur' ? 'کیا آپ اس پیغام کو حذف کرنا چاہتے ہیں؟' : 'Are you sure you want to delete this message?')) {
                 try {
                     await deleteDoc(doc(db, `chats/${window.activeChatId}/messages`, msgId));
                 } catch (e) {
@@ -905,7 +1049,7 @@
             window.renderPlanner();
 
             try {
-                const isUrdu = currentLang === 'ur';
+                const isUrdu = window.currentLang === 'ur';
                 const title = isUrdu ? "ناشتہ تیار کریں!" : "Make Breakfast!";
                 const body = isUrdu ? "کوئی جاگ گیا ہے اور ناشتے کا انتظار کر رہا ہے۔" : "Someone is awake and waiting for breakfast.";
 
@@ -1016,7 +1160,7 @@
 
         // Local Tab Alerts (Used if she already has the browser tab open) [2]
         window.triggerLocalAppAlertEffects = function() {
-            const isUrdu = currentLang === 'ur';
+            const isUrdu = window.currentLang === 'ur';
             const title = isUrdu ? "ناشتہ تیار کریں!" : "Make Breakfast!";
             const body = isUrdu ? "کوئی جاگ گیا ہے اور ناشتے کے لیے تیار ہے۔" : "Someone is awake and requested breakfast.";
 
@@ -1032,7 +1176,7 @@
 
         // --- GLOBAL EXPORTS FOR HTML COMPATIBILITY ---
         window.toggleAuthMode = function() {
-            const t = translations[currentLang];
+            const t = window.translations[window.currentLang];
             const btnPrimary = document.getElementById('btn-auth-primary');
             const btnToggle = document.getElementById('btn-auth-toggle');
 
@@ -1069,7 +1213,7 @@
         }
 
         window.changeLanguage = function(lang) {
-            currentLang = lang;
+            window.currentLang = lang;
             localStorage.setItem('breakfastLang', lang);
             window.renderPlanner();
             updateTabIcons();
@@ -1094,7 +1238,7 @@
         }
 
         function updateTabIcons() {
-            const t = translations[currentLang];
+            const t = window.translations[window.currentLang];
             document.getElementById('lbl-nav-planner').innerText = t.planner;
             document.getElementById('lbl-nav-chat').innerText = t.chat;
             document.getElementById('lbl-nav-profile').innerText = t.profile;
@@ -1108,7 +1252,7 @@
         window.renderChatsList = function() {
             const container = document.getElementById('chats-list-container');
             container.innerHTML = '';
-            const t = translations[currentLang];
+            const t = window.translations[window.currentLang];
 
             if (window.myConnections.length === 0) {
                 container.innerHTML = `
@@ -1152,7 +1296,7 @@
             const code = document.getElementById('user-display-code').innerText;
             try {
                 await navigator.clipboard.writeText(code);
-                alert(currentLang === 'ur' ? "اکاؤنٹ کوڈ کاپی ہو گیا!" : "Account code copied to clipboard!");
+                alert(window.currentLang === 'ur' ? "اکاؤنٹ کوڈ کاپی ہو گیا!" : "Account code copied to clipboard!");
             } catch (err) {
                 console.error("Clipboard copy failed.");
             }
@@ -1160,9 +1304,9 @@
 
         function updateUITexts() {
             try {
-                const t = translations[currentLang];
+                const t = window.translations[window.currentLang];
                 
-                if (currentLang === 'ur') {
+                if (window.currentLang === 'ur') {
                     document.body.classList.add('font-urdu');
                     document.body.classList.remove('font-english');
                     document.body.setAttribute('dir', 'rtl');
@@ -1236,7 +1380,7 @@
                 document.getElementById('btn-logout').innerText = t.logout;
                 document.getElementById('btn-delete-account').innerText = t.deleteAccount;
 
-                document.getElementById('lang-selector').value = currentLang;
+                document.getElementById('lang-selector').value = window.currentLang;
                 updateTabIcons();
             } catch (err) {
                 showDiagnosticBanner(`UI Text Loading Error: ${err.message}`);
@@ -1246,7 +1390,7 @@
         window.renderPlanner = function() {
             try {
                 updateUITexts();
-                const t = translations[currentLang];
+                const t = window.translations[window.currentLang];
                 const grid = document.getElementById('planner-grid');
                 grid.innerHTML = '';
 
@@ -1304,7 +1448,7 @@
         function renderPresets() {
             const container = document.getElementById('presets-container');
             container.innerHTML = '';
-            const t = translations[currentLang];
+            const t = window.translations[window.currentLang];
             
             t.presetsList.forEach(p => {
                 const btn = document.createElement('button');
@@ -1337,7 +1481,7 @@
 
         window.openModal = function(day) {
             window.activeDay = day;
-            const t = translations[currentLang];
+            const t = window.translations[window.currentLang];
             
             document.getElementById('modal-title').innerText = `${t.planTitle}${t.days[day]}`;
             document.getElementById('breakfast-input').value = window.plannerData[day] || '';
@@ -1393,7 +1537,7 @@
         }
 
         window.resetWeek = async function() {
-            const t = translations[currentLang];
+            const t = window.translations[window.currentLang];
             if (confirm(t.resetConfirm)) {
                 if (!window.isDataLoaded) return;
                 daysKeyList.forEach(day => window.plannerData[day] = '');
