@@ -112,7 +112,7 @@
                     </button>
                     <!-- Small Version Number on Login Card -->
                     <div class="pt-2 border-t border-slate-100">
-                        <span class="text-[10px] font-extrabold text-slate-300 uppercase tracking-widest">v2.6.0</span>
+                        <span class="text-[10px] font-extrabold text-slate-300 uppercase tracking-widest">v2.7.0</span>
                     </div>
                 </div>
             </div>
@@ -229,7 +229,7 @@
                         </div>
                         <div>
                             <h2 id="profile-username-display" class="text-2xl font-extrabold text-slate-900">username</h2>
-                            <p class="text-sm text-slate-400"><span id="profile-role-tag">Breakfast Member</span> • <span class="font-extrabold text-slate-500">v2.6.0</span></p>
+                            <p class="text-sm text-slate-400"><span id="profile-role-tag">Breakfast Member</span> • <span class="font-extrabold text-slate-500">v2.7.0</span></p>
                         </div>
                     </div>
 
@@ -408,7 +408,6 @@
         window.alertListeners = {}; 
         window.lastAlertTimestamps = {}; 
         window.activeAlertUid = null; 
-        const appStartupTime = Date.now(); 
 
         // --- ENFORCE GLOBAL SCOPING TO PREVENT IOS SAFARI REFERENCE ERRORS [2] ---
         window.currentLang = localStorage.getItem('breakfastLang') || 'en';
@@ -525,6 +524,8 @@
                 logout: "لاگ آؤٹ",
                 deleteAccount: "اکاؤنٹ مستقل حذف کریں",
                 addConnection: "رابطہ شامل کریں",
+                enterCode: "اکاؤنٹ کوڈ درج کریں",
+                connectBtn: "جوڑیں",
                 activeChats: "بات چیت",
                 noChats: "ابھی تک کوئی رابطہ شامل نہیں ہوا۔ امی یا بچے کے اکاؤنٹ کا کوڈ اوپر درج کر کے منسلک ہوں!",
                 viewPlanner: "منصوبہ دیکھیں",
@@ -664,14 +665,11 @@
                         if (req.timestamp === mySentTimestamp) {
                             window.hideAlarmModal();
                         } else {
-                            // Only trigger visual alert / sound if the alert is newer than our startup timestamp
-                            if (req.timestamp > appStartupTime - 15000) {
-                                window.activeAlertUid = finalUid; // Map current active UID
-                                window.showAlarmModal();
-                                if (req.timestamp !== window.lastAlertTimestamps[finalUid]) {
-                                    window.lastAlertTimestamps[finalUid] = req.timestamp;
-                                    window.triggerLocalAppAlertEffects();
-                                }
+                            window.activeAlertUid = finalUid; // Map current active UID
+                            window.showAlarmModal();
+                            if (req.timestamp !== window.lastAlertTimestamps[finalUid]) {
+                                window.lastAlertTimestamps[finalUid] = req.timestamp;
+                                window.triggerLocalAppAlertEffects();
                             }
                         }
                     } else {
@@ -739,14 +737,11 @@
                         const mySentTimestamp = parseInt(localStorage.getItem('mySentTimestamp') || '0');
 
                         if (req && req.active && req.timestamp !== mySentTimestamp) {
-                            // Only trigger visual alert / sound if the alert is newer than our startup timestamp
-                            if (req.timestamp > appStartupTime - 15000) {
-                                if (req.timestamp !== window.lastAlertTimestamps[uid]) {
-                                    window.lastAlertTimestamps[uid] = req.timestamp;
-                                    window.activeAlertUid = uid; // Track whose alert is being displayed
-                                    window.showAlarmModal();
-                                    window.triggerLocalAppAlertEffects();
-                                }
+                            if (req.timestamp !== window.lastAlertTimestamps[uid]) {
+                                window.lastAlertTimestamps[uid] = req.timestamp;
+                                window.activeAlertUid = uid; // Track whose alert is being displayed
+                                window.showAlarmModal();
+                                window.triggerLocalAppAlertEffects();
                             }
                         }
                     }
@@ -1162,7 +1157,7 @@
         window.triggerLocalAppAlertEffects = function() {
             const isUrdu = window.currentLang === 'ur';
             const title = isUrdu ? "ناشتہ تیار کریں!" : "Make Breakfast!";
-            const body = isUrdu ? "کوئی جاگ گیا ہے اور ناشتے کے لیے تیار ہے۔" : "Someone is awake and requested breakfast.";
+            const body = isUrdu ? "کوئی جاگ گیا ہے اور ناشتے کا مقررہ وقت ہو گیا ہے۔" : "Someone is awake and requested breakfast.";
 
             if ("Notification" in window && Notification.permission === "granted") {
                 new Notification(title, {
